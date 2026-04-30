@@ -41,6 +41,8 @@ export interface DropdownProps {
   id?: string;
   /** Auto-focus the trigger on mount */
   autoFocus?: boolean;
+  /** Compact size variant for inline usage */
+  size?: 'sm' | 'md';
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -54,6 +56,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   enableSearch = false,
   id,
   autoFocus = false,
+  size = 'md',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -322,7 +325,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   return (
     <div
-      className={`${styles.container} ${className || ''}`}
+      className={`${styles.container} ${size === 'sm' ? styles.containerSm : ''} ${className || ''}`}
       ref={containerRef}
     >
       {label && <label className={styles.label} htmlFor={id}>{label}</label>}
@@ -330,7 +333,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         <button
           ref={triggerRef}
           id={id}
-          className={`${styles.trigger} ${isOpen ? styles.open : ''}`}
+          className={`${styles.trigger} ${size === 'sm' ? styles.triggerSm : ''} ${isOpen ? styles.open : ''}`}
           onClick={handleToggle}
           onKeyDown={handleKeyDown}
           disabled={disabled}

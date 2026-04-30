@@ -93,18 +93,54 @@
   padding: 12px;
 }
 
+.editorLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .editorLabel {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--vscode-descriptionForeground);
-  margin-bottom: 6px;
+}
+
+.formatBtn {
+  background: none;
+  border: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.formatBtn:hover {
+  border-color: var(--vscode-button-background);
+  color: var(--vscode-button-background);
 }
 
 .editorWrap {
   flex: 1;
   min-height: 0;
+}
+
+.editorWrapError > div {
+  border-color: var(--vscode-errorForeground) !important;
+}
+
+.jsonError {
+  font-size: 10px;
+  color: var(--vscode-errorForeground);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ── Sidebar (right) ── */
@@ -193,7 +229,7 @@
 }
 
 .propTypeWrap {
-  width: 90px;
+  width: 72px;
   flex-shrink: 0;
 }
 
@@ -245,14 +281,16 @@
 .repeatWrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   margin-right: auto;
 }
 
 .repeatHint {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--vscode-descriptionForeground);
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 
 /* ── Responsive: stack on narrow ── */

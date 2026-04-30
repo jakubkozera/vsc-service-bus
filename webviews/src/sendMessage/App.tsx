@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Button, Input, Switch, NumberInput, CodeEditor, Dropdown } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
 import { IconSend, IconPlus, IconX } from '@tabler/icons-react';
@@ -35,9 +35,49 @@ export const App: React.FC = () => {
   const [appProps, setAppProps] = useState<AppProp[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [bodyJsonError, setBodyJsonError] = useState<string | null>(null);
+  const [batchJsonError, setBatchJsonError] = useState<string | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(340);
   const isResizing = useRef(false);
   const { postMessage, subscribe } = useVSCodeMessaging<any, any>();
+
+  const isJsonContentType = contentType.trim().toLowerCase() === 'application/json';
+
+  const validateBody = useCallback(() => {
+    if (!isJsonContentType || batchMode) { setBodyJsonError(null); return; }
+    const trimmed = body.trim();
+    if (!trimmed) { setBodyJsonError(null); return; }
+    try { JSON.parse(trimmed); setBodyJsonError(null); }
+    catch (e) { setBodyJsonError((e as Error).message); }
+  }, [body, isJsonContentType, batchMode]);
+
+  const formatBody = useCallback(() => {
+    if (!isJsonContentType || batchMode) return;
+    try {
+      const parsed = JSON.parse(body);
+      setBody(JSON.stringify(parsed, null, 2));
+      setBodyJsonError(null);
+    } catch (e) {
+      setBodyJsonError((e as Error).message);
+    }
+  }, [body, isJsonContentType, batchMode]);
+
+  const validateBatch = useCallback(() => {
+    const trimmed = batchJson.trim();
+    if (!trimmed) { setBatchJsonError(null); return; }
+    try { JSON.parse(trimmed); setBatchJsonError(null); }
+    catch (e) { setBatchJsonError((e as Error).message); }
+  }, [batchJson]);
+
+  const formatBatch = useCallback(() => {
+    try {
+      const parsed = JSON.parse(batchJson);
+      setBatchJson(JSON.stringify(parsed, null, 2));
+      setBatchJsonError(null);
+    } catch (e) {
+      setBatchJsonError((e as Error).message);
+    }
+  }, [batchJson]);
 
   useEffect(() => {
     const unsub = subscribe((msg) => {
@@ -53,6 +93,13 @@ export const App: React.FC = () => {
     postMessage({ command: 'webviewReady' });
     return unsub;
   }, [postMessage, subscribe]);
+
+  // Clear errors when switching modes
+  useEffect(() => {
+    setBodyJsonError(null);
+    setBatchJsonError(null);
+    setError(null);
+  }, [batchMode]);
 
   // Resizer handlers
   useEffect(() => {
@@ -96,7 +143,6 @@ export const App: React.FC = () => {
   const targetOptions = allTargets.map(t => ({
     value: `${t.kind}:${t.name}`,
     label: t.name,
-    description: t.kind === 'topic' ? 'Topic' : 'Queue'
   }));
   const currentValue = `${currentEntry.kind}:${currentEntry.name}`;
 
@@ -110,6 +156,16 @@ export const App: React.FC = () => {
 
   const send = () => {
     setError(null); setResult(null);
+    // Validate JSON body before sending
+    if (isJsonContentType && !batchMode && body.trim()) {
+      try { JSON.parse(body.trim()); setBodyJsonError(null); }
+      catch (e) {
+        const msg = (e as Error).message;
+        setBodyJsonError(msg);
+        setError('Message body is not valid JSON: ' + msg);
+        return;
+      }
+    }
     const payload: any = {
       contentType, subject: subject || undefined, messageId: messageId || undefined,
       correlationId: correlationId || undefined,
@@ -122,7 +178,13 @@ export const App: React.FC = () => {
     if (batchMode) {
       try {
         payload.batch = JSON.parse(batchJson);
-      } catch (e) { return setError('Batch JSON invalid: ' + (e as Error).message); }
+        setBatchJsonError(null);
+      } catch (e) {
+        const msg = (e as Error).message;
+        setBatchJsonError(msg);
+        setError('Batch JSON invalid: ' + msg);
+        return;
+      }
     } else {
       payload.body = body;
       payload.repeat = repeat;
@@ -165,15 +227,44 @@ export const App: React.FC = () => {
       <div className={styles.main}>
         {/* Left: Editor */}
         <div className={styles.editorPane}>
-          <div className={styles.editorLabel}>{batchMode ? 'Batch Payload (JSON array)' : 'Message Body'}</div>
-          <div className={styles.editorWrap}>
+          <div className={styles.editorLabelRow}>
+            <span className={styles.editorLabel}>{batchMode ? 'Batch Payload (JSON array)' : 'Message Body'}</span>
+            {(isJsonContentType || batchMode) && (
+              <button
+                className={styles.formatBtn}
+                onClick={batchMode ? formatBatch : formatBody}
+                type="button"
+                title="Format JSON"
+              >
+                Format
+              </button>
+            )}
+          </div>
+          <div className={`${styles.editorWrap} ${(!batchMode && bodyJsonError) || (batchMode && batchJsonError) ? styles.editorWrapError : ''}`}>
             <CodeEditor
               value={batchMode ? batchJson : body}
-              onChange={batchMode ? setBatchJson : setBody}
+              onChange={(v) => {
+                if (batchMode) {
+                  setBatchJson(v);
+                  setBatchJsonError(null);
+                  setError(null);
+                } else {
+                  setBody(v);
+                  setBodyJsonError(null);
+                  setError(null);
+                }
+              }}
+              onBlur={batchMode ? validateBatch : validateBody}
               placeholder={batchMode ? '[{ "body": "..." }, ...]' : 'Enter message body…'}
               language={batchMode ? 'json' : 'auto'}
             />
           </div>
+          {bodyJsonError && !batchMode && (
+            <div className={styles.jsonError}>⚠ Invalid JSON: {bodyJsonError}</div>
+          )}
+          {batchJsonError && batchMode && (
+            <div className={styles.jsonError}>⚠ Invalid JSON: {batchJsonError}</div>
+          )}
         </div>
 
         {/* Splitter */}
@@ -213,6 +304,7 @@ export const App: React.FC = () => {
                       options={TYPE_OPTIONS}
                       value={p.type}
                       onChange={(value) => setAppProps(appProps.map((x, j) => j === i ? { ...x, type: value as AppProp['type'] } : x))}
+                      size="sm"
                     />
                   </div>
                   <button className={styles.propRemove} onClick={() => setAppProps(appProps.filter((_, j) => j !== i))} title="Remove property">

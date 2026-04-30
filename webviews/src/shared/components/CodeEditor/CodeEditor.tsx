@@ -4,12 +4,13 @@ import styles from './CodeEditor.module.css';
 export interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   /** When 'auto', the editor tries to detect JSON content and apply highlighting. */
   language?: 'json' | 'plaintext' | 'auto';
 }
 
-export const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, placeholder, language = 'auto' }) => {
+export const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onBlur, placeholder, language = 'auto' }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
@@ -75,6 +76,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, placeho
           onChange={(e) => onChange(e.target.value)}
           onScroll={handleScroll}
           onKeyDown={handleKeyDown}
+          onBlur={onBlur}
           placeholder={placeholder}
           spellCheck={false}
         />
