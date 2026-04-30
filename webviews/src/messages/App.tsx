@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Dropdown, Input, Modal, NumberInput, CodeViewer } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
-import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowBackUp, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull } from '@tabler/icons-react';
+import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowBackUp, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import styles from './Messages.module.css';
 
 interface Msg {
@@ -28,7 +28,7 @@ const MODE_OPTIONS = [
 ];
 
 export const App: React.FC = () => {
-  const [init, setInit] = useState<{ source: any; isDLQ: boolean; peekDefault: number } | null>(null);
+  const [init, setInit] = useState<{ source: any; isDLQ: boolean; peekDefault: number; totalMessageCount?: number } | null>(null);
   const [mode, setMode] = useState<Mode>('peek');
   const [count, setCount] = useState(50);
   const [items, setItems] = useState<Msg[]>([]);
@@ -43,6 +43,8 @@ export const App: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [copiedBody, setCopiedBody] = useState(false);
   const [copiedAppProps, setCopiedAppProps] = useState(false);
+  const [totalMessageCount, setTotalMessageCount] = useState(0);
+  const [page, setPage] = useState(1);
   const { postMessage, subscribe } = useVSCodeMessaging<any, any>();
 
   // Keep a ref for selectedSeqs so the message handler always has the latest value
@@ -64,6 +66,7 @@ export const App: React.FC = () => {
       if (msg.command === 'init') {
         setInit(msg.data);
         setCount(msg.data.peekDefault ?? 50);
+        if (msg.data.totalMessageCount != null) setTotalMessageCount(msg.data.totalMessageCount);
         // Auto-fetch on open
         if (!autoFetched.current) {
           autoFetched.current = true;
@@ -76,6 +79,7 @@ export const App: React.FC = () => {
         setSelectedSeqs(new Set());
         setLoading(false);
         setActionLoading(false);
+        if (msg.totalMessageCount != null) setTotalMessageCount(msg.totalMessageCount);
       } else if (msg.command === 'actionDone') {
         setActionLoading(false);
         setItems((prev) => prev.filter((m) => m.sequenceNumber !== msg.sequenceNumber));
@@ -104,12 +108,47 @@ export const App: React.FC = () => {
     !filter || (m.messageId ?? '').includes(filter) || (m.subject ?? '').includes(filter) || (m.body ?? '').includes(filter)
   ), [items, filter]);
 
-  const fetchMessages = () => {
+  // Pagination based on server-side total message count
+  const totalPages = Math.max(1, Math.ceil(totalMessageCount / count));
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+
+  const fetchPage = useCallback((targetPage: number, fromSeq?: string) => {
     setError(null);
     setLoading(true);
-    if (mode === 'peek') postMessage({ command: 'peek', count });
-    if (mode === 'peekLock') postMessage({ command: 'receivePeekLock', count });
-    if (mode === 'receiveAndDelete') postMessage({ command: 'receiveAndDelete', count });
+    setPage(targetPage);
+    if (mode === 'peek') {
+      postMessage({ command: 'peek', count, fromSequenceNumber: fromSeq });
+    } else if (mode === 'peekLock') {
+      postMessage({ command: 'receivePeekLock', count });
+    } else if (mode === 'receiveAndDelete') {
+      postMessage({ command: 'receiveAndDelete', count });
+    }
+  }, [mode, count, postMessage]);
+
+  const fetchMessages = () => {
+    setPage(1);
+    fetchPage(1);
+  };
+
+  const goNextPage = () => {
+    if (!hasNextPage || items.length === 0) return;
+    // Use last message's sequence number + 1 to fetch next page
+    const lastSeq = items[items.length - 1].sequenceNumber;
+    const nextSeq = (BigInt(lastSeq) + 1n).toString();
+    fetchPage(page + 1, nextSeq);
+  };
+
+  const goPrevPage = () => {
+    if (!hasPrevPage) return;
+    // Go back to page 1 (or re-fetch from beginning for simplicity)
+    // For a proper "previous" we'd need to track sequence offsets; reset to start
+    if (page - 1 === 1) {
+      fetchPage(1);
+    } else {
+      // We can't easily go back with peek, reset to first page
+      fetchPage(1);
+    }
   };
 
   // Format body for Monaco
@@ -166,46 +205,96 @@ export const App: React.FC = () => {
     document.addEventListener('mouseup', onUp);
   }, [panelHeight]);
 
+  // Track last clicked index for Shift+Click range selection
+  const lastClickedIdx = useRef<number | null>(null);
+
+  const handleRowClick = (m: Msg, idx: number, e: React.MouseEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl+Click: toggle individual checkbox
+      e.preventDefault();
+      const next = new Set(selectedSeqs);
+      if (next.has(m.sequenceNumber)) next.delete(m.sequenceNumber); else next.add(m.sequenceNumber);
+      setSelectedSeqs(next);
+      lastClickedIdx.current = idx;
+    } else if (e.shiftKey && lastClickedIdx.current !== null) {
+      // Shift+Click: range select/deselect
+      e.preventDefault();
+      const start = Math.min(lastClickedIdx.current, idx);
+      const end = Math.max(lastClickedIdx.current, idx);
+      const next = new Set(selectedSeqs);
+      const isSelecting = !next.has(m.sequenceNumber);
+      for (let i = start; i <= end; i++) {
+        if (isSelecting) next.add(filtered[i].sequenceNumber); else next.delete(filtered[i].sequenceNumber);
+      }
+      setSelectedSeqs(next);
+    } else {
+      setSelected(m);
+      lastClickedIdx.current = idx;
+    }
+  };
+
   if (!init) return <div className={styles.emptyState}>Loading…</div>;
 
   const isPeekLock = mode === 'peekLock';
+  const hasMessages = filtered.length > 0;
+  const hasSelection = selectedSeqs.size > 0;
 
   return (
     <div className={styles.viewer}>
       {/* Toolbar */}
       <div className={styles.toolbar}>
-        <div className={styles.toolbarGroup}>
-          <div style={{ minWidth: 210 }}>
-            <Dropdown options={MODE_OPTIONS} value={mode} onChange={(v) => setMode(v as Mode)} label="Mode" />
-          </div>
-          <NumberInput label="Count" value={String(count)} onChange={(e) => setCount(Number(e.target.value) || 1)} style={{ width: 150 }} />
-          <Input label="Filter" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="search…" style={{ width: 160 }} />
-        </div>
-        <div className={styles.toolbarGroup}>
-          <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={fetchMessages} disabled={loading} title="Fetch messages">
-            <IconDownload size={16} stroke={1.8} />{loading ? 'Fetching…' : 'Fetch'}
-          </button>
-          <button className={styles.toolBtn} onClick={() => { setItems([]); setSelected(null); }} title="Clear list">
-            <IconClearAll size={16} stroke={1.8} />Clear
-          </button>
-          <button className={styles.toolBtn} onClick={() => postMessage({ command: 'export', items })} title="Export to JSON">
-            <IconFileExport size={16} stroke={1.8} />Export
-          </button>
-        </div>
-        {init.isDLQ && (
+        <div className={styles.toolbarRow}>
           <div className={styles.toolbarGroup}>
-            <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={() => { setActionLoading(true); postMessage({ command: 'resubmit', sequenceNumbers: Array.from(selectedSeqs), count }); }} title="Resubmit messages">
-              <IconArrowBackUp size={16} stroke={1.8} />Resubmit
-            </button>
-            <button className={styles.toolBtn} onClick={() => postMessage({ command: 'pickMoveTarget' })} title="Move to another queue or topic">
-              <IconArrowMoveRight size={16} stroke={1.8} />Move to…
+            <div style={{ minWidth: 210 }}>
+              <Dropdown options={MODE_OPTIONS} value={mode} onChange={(v) => setMode(v as Mode)} label="Mode" />
+            </div>
+            <NumberInput label="Count" value={String(count)} onChange={(e) => setCount(Number(e.target.value) || 1)} style={{ width: 150 }} />
+            <Input label="Filter" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="search…" style={{ width: 160 }} />
+            <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={fetchMessages} disabled={loading} title="Fetch messages">
+              <IconDownload size={16} stroke={1.8} />{loading ? 'Fetching…' : 'Fetch'}
             </button>
           </div>
-        )}
-        <div className={styles.toolbarSpacer} />
-        <div className={styles.toolbarStats}>
-          <span className={styles.statBadge}>{filtered.length} messages</span>
-          {selectedSeqs.size > 0 && <span>{selectedSeqs.size} selected</span>}
+          <div className={styles.toolbarSpacer} />
+          <div className={styles.toolbarStats}>
+            <span className={styles.statBadge}>{filtered.length} messages</span>
+            {hasSelection && <span className={styles.statBadge}>{selectedSeqs.size} selected</span>}
+          </div>
+        </div>
+        <div className={styles.toolbarRow}>
+          <div className={styles.toolbarGroup}>
+            {hasMessages && (
+              <button className={styles.toolBtn} onClick={() => {
+                if (hasSelection) {
+                  setItems((prev) => prev.filter((m) => !selectedSeqs.has(m.sequenceNumber)));
+                  setSelectedSeqs(new Set());
+                  setSelected(null);
+                } else {
+                  setItems([]);
+                  setSelected(null);
+                }
+              }} title={hasSelection ? 'Remove selected from list' : 'Clear list'}>
+                <IconClearAll size={16} stroke={1.8} />{hasSelection ? 'Remove selected' : 'Clear'}
+              </button>
+            )}
+            {hasMessages && (
+              <button className={styles.toolBtn} onClick={() => postMessage({ command: 'export', items: hasSelection ? items.filter(m => selectedSeqs.has(m.sequenceNumber)) : items })} title={hasSelection ? 'Export selected to JSON' : 'Export all to JSON'}>
+                <IconFileExport size={16} stroke={1.8} />{hasSelection ? 'Export selected' : 'Export'}
+              </button>
+            )}
+          </div>
+          <div className={styles.toolbarSpacer} />
+          {hasSelection && (
+            <div className={styles.toolbarGroup}>
+              {init.isDLQ && (
+                <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={() => { setActionLoading(true); postMessage({ command: 'resubmit', sequenceNumbers: Array.from(selectedSeqs), count }); }} title="Resubmit selected messages">
+                  <IconArrowBackUp size={16} stroke={1.8} />Resubmit
+                </button>
+              )}
+              <button className={styles.toolBtn} onClick={() => postMessage({ command: 'pickMoveTarget' })} title="Move selected to another queue or topic">
+                <IconArrowMoveRight size={16} stroke={1.8} />Move to…
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -227,7 +316,13 @@ export const App: React.FC = () => {
                 <tr>
                   <th className={styles.th}>
                     <input type="checkbox" className={styles.checkbox}
-                      onChange={(e) => setSelectedSeqs(e.target.checked ? new Set(filtered.map(m => m.sequenceNumber)) : new Set())} />
+                      checked={filtered.length > 0 && filtered.every(m => selectedSeqs.has(m.sequenceNumber))}
+                      onChange={(e) => {
+                        const next = new Set(selectedSeqs);
+                        if (e.target.checked) { filtered.forEach(m => next.add(m.sequenceNumber)); }
+                        else { filtered.forEach(m => next.delete(m.sequenceNumber)); }
+                        setSelectedSeqs(next);
+                      }} />
                   </th>
                   <th className={styles.th}>Seq</th>
                   <th className={styles.th}>MessageId</th>
@@ -238,10 +333,10 @@ export const App: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((m) => (
+                {filtered.map((m, idx) => (
                   <tr key={m.sequenceNumber}
                     className={`${styles.tr} ${selected?.sequenceNumber === m.sequenceNumber ? styles.trSelected : ''}`}
-                    onClick={() => setSelected(m)}>
+                    onClick={(e) => handleRowClick(m, idx, e)}>
                     <td className={styles.td}>
                       <input type="checkbox" className={styles.checkbox}
                         checked={selectedSeqs.has(m.sequenceNumber)}
@@ -250,6 +345,7 @@ export const App: React.FC = () => {
                           const next = new Set(selectedSeqs);
                           if (e.target.checked) next.add(m.sequenceNumber); else next.delete(m.sequenceNumber);
                           setSelectedSeqs(next);
+                          lastClickedIdx.current = idx;
                         }} />
                     </td>
                     <td className={styles.td}>{m.sequenceNumber}</td>
@@ -271,6 +367,19 @@ export const App: React.FC = () => {
             </table>
           )}
         </div>
+
+        {/* Pagination bar */}
+        {totalPages > 1 && (
+          <div className={styles.paginationBar}>
+            <button className={styles.pageBtn} disabled={!hasPrevPage || loading} onClick={goPrevPage} title="Previous page">
+              <IconChevronLeft size={16} stroke={2} />
+            </button>
+            <span className={styles.pageInfo}>Page {page} of {totalPages}</span>
+            <button className={styles.pageBtn} disabled={!hasNextPage || loading} onClick={goNextPage} title="Next page">
+              <IconChevronRight size={16} stroke={2} />
+            </button>
+          </div>
+        )}
 
         {/* Detail panel (bottom, resizable) */}
         {selected && (

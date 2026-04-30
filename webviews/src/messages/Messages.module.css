@@ -9,14 +9,19 @@
 
 /* ── Toolbar ── */
 .toolbar {
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: var(--vscode-sideBar-background);
   border-bottom: 1px solid var(--vscode-panel-border);
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.toolbarRow {
+  display: flex;
   gap: 8px;
   align-items: flex-end;
-  flex-wrap: wrap;
-  flex-shrink: 0;
 }
 
 .toolbarGroup {
@@ -460,6 +465,47 @@
 .editorWrapper {
   flex: 1;
   overflow: auto;
+}
+
+/* ── Pagination bar ── */
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 16px;
+  border-top: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBar-background);
+  flex-shrink: 0;
+}
+
+.pageBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vscode-button-secondaryBackground);
+  border: 1px solid var(--vscode-button-secondaryBorder, var(--vscode-panel-border));
+  border-radius: 4px;
+  color: var(--vscode-button-secondaryForeground);
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pageInfo {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
 }
 
 /* ── Empty state ── */

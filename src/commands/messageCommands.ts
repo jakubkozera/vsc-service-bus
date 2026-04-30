@@ -63,11 +63,15 @@ export function registerMessageCommands(
       const iconPath = src.topic
         ? { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-dark.svg') }
         : { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-dark.svg') };
+
+      // Get initial total message count
+      const totalMessageCount = await getMessageCount(admin, src, isDLQ);
+
       const host = new WebviewHost(ctx, {
         viewType: 'sbe.messages',
         title: `Messages: ${src.label}`,
         bundleId: 'messages',
-        initData: { source: { queue: src.queue, topic: src.topic, subscription: src.subscription, subQueue: src.subQueue }, isDLQ, peekDefault: peekDefault() },
+        initData: { source: { queue: src.queue, topic: src.topic, subscription: src.subscription, subQueue: src.subQueue }, isDLQ, peekDefault: peekDefault(), totalMessageCount },
         iconPath
       });
 
@@ -91,7 +95,8 @@ export function registerMessageCommands(
             await cleanup();
             const list = await messages.peek(src.nsId, src, msg.count ?? peekDefault(), msg.fromSequenceNumber ? BigInt(msg.fromSequenceNumber) : undefined);
             Logger.info(`[Messages] Peek returned ${list.length} messages`);
-            host.post({ command: 'messages', mode: 'peek', items: list.map(serializeMessage) });
+            const totalMessageCount = await getMessageCount(admin, src, isDLQ);
+            host.post({ command: 'messages', mode: 'peek', items: list.map(serializeMessage), totalMessageCount });
           } else if (msg.command === 'receivePeekLock') {
             Logger.info(`[Messages] ReceivePeekLock ${msg.count} from ${src.label}`);
             await cleanup();
@@ -259,4 +264,19 @@ export function registerMessageCommands(
       });
     })
   );
+}
+
+async function getMessageCount(admin: AdminService, src: MessageSource & { nsId: string }, isDLQ: boolean): Promise<number> {
+  try {
+    if (src.queue) {
+      const { runtime } = await admin.getQueue(src.nsId, src.queue);
+      if (isDLQ) return runtime.deadLetterMessageCount;
+      return runtime.activeMessageCount;
+    } else if (src.topic && src.subscription) {
+      const { runtime } = await admin.getSubscription(src.nsId, src.topic, src.subscription);
+      if (isDLQ) return runtime.deadLetterMessageCount ?? 0;
+      return runtime.activeMessageCount ?? 0;
+    }
+  } catch { /* ignore */ }
+  return 0;
 }

@@ -115,7 +115,7 @@ export const App: React.FC = () => {
   // View/Edit mode — full dashboard
   return (
     <div className={styles.editor}>
-      {purging && <LoadingOverlay message="Purging messages…" />}
+      {purging && <LoadingOverlay isLoading={true} text="Purging messages…" />}
       <div className={styles.content}>
         <EntityHeader init={init} props={props} />
         {init.runtime && <StatsRow runtime={init.runtime} kind={init.kind} postMessage={postMessage} setPurging={setPurging} />}
