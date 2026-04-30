@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Button, Input, Switch, Dropdown, CopyButton, DurationInput, NumberInput } from '@shared/components';
+import { Button, Input, Switch, Dropdown, CopyButton, DurationInput, NumberInput, Modal } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
-import { IconEye } from '@tabler/icons-react';
+import { IconEye, IconTrash, IconSend, IconArrowForwardUp } from '@tabler/icons-react';
 import styles from './EntityEditor.module.css';
 
 // ── Types ──
@@ -107,7 +107,6 @@ export const App: React.FC = () => {
   // View/Edit mode — full dashboard
   return (
     <div className={styles.editor}>
-      <Breadcrumb init={init} />
       <div className={styles.content}>
         <EntityHeader init={init} props={props} />
         {init.runtime && <StatsRow runtime={init.runtime} kind={init.kind} postMessage={postMessage} />}
@@ -124,26 +123,14 @@ export const App: React.FC = () => {
   );
 };
 
-// ── Breadcrumb ──
+// ── Tooltip ──
 
-const Breadcrumb: React.FC<{ init: InitData }> = ({ init }) => {
-  const parts = ['Service Bus'];
-  if (init.namespace) parts.push(init.namespace);
-  parts.push(init.kind === 'queue' ? 'Queues' : init.kind === 'topic' ? 'Topics' : init.kind === 'subscription' ? 'Subscriptions' : 'Rules');
-  if (init.topicName && init.kind !== 'topic') parts.push(init.topicName);
-  if (init.name) parts.push(init.name);
-
-  return (
-    <div className={styles.breadcrumb}>
-      {parts.map((p, i) => (
-        <React.Fragment key={i}>
-          {i > 0 && <span className={styles.breadcrumbSep}>›</span>}
-          <span className={i === parts.length - 1 ? styles.breadcrumbCurrent : undefined}>{p}</span>
-        </React.Fragment>
-      ))}
-    </div>
-  );
-};
+const Tooltip: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className={styles.tooltipWrap}>
+    {children}
+    <div className={styles.tooltip}>{label}</div>
+  </div>
+);
 
 // ── Entity Header ──
 
@@ -176,6 +163,8 @@ const EntityHeader: React.FC<{ init: InitData; props: any }> = ({ init, props })
 // ── Stats Row ──
 
 const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) => void }> = ({ runtime, kind, postMessage }) => {
+  const [purgeTarget, setPurgeTarget] = useState<'active' | 'deadLetter' | null>(null);
+
   const cards = useMemo(() => {
     if (kind === 'topic') {
       return [
@@ -185,31 +174,82 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
       ];
     }
     return [
-      { label: 'Active', value: runtime.activeMessageCount ?? 0, sub: 'messages', highlighted: true, action: 'viewMessages' as const },
-      { label: 'Total', value: runtime.totalMessageCount ?? runtime.activeMessageCount ?? 0, sub: 'messages' },
-      { label: 'Dead-letter', value: runtime.deadLetterMessageCount ?? 0, sub: 'messages', action: 'viewDeadLetter' as const },
+      { label: 'Total', value: runtime.totalMessageCount ?? runtime.activeMessageCount ?? 0, sub: 'messages', highlighted: true },
+      { label: 'Active', value: runtime.activeMessageCount ?? 0, sub: 'messages', type: 'active' as const },
+      { label: 'Dead-letter', value: runtime.deadLetterMessageCount ?? 0, sub: 'messages', type: 'deadLetter' as const },
       { label: 'Scheduled', value: runtime.scheduledMessageCount ?? 0, sub: 'messages' },
       { label: 'Size', value: formatSize(runtime.sizeInBytes ?? 0), sub: `${(runtime.sizeInBytes ?? 0).toLocaleString()} bytes`, isText: true },
     ];
   }, [runtime, kind]);
 
+  const confirmPurge = (target: 'active' | 'deadLetter') => setPurgeTarget(target);
+
+  const doPurge = () => {
+    if (!purgeTarget) return;
+    postMessage({ command: purgeTarget === 'active' ? 'purgeActive' : 'purgeDeadLetter' });
+    setPurgeTarget(null);
+  };
+
   return (
-    <div className={styles.statsRow}>
-      {cards.map((c, i) => (
-        <div key={i} className={`${styles.statCard} ${c.highlighted ? styles.statCardHighlighted : ''} ${'action' in c ? styles.statCardClickable : ''}`}
-          onClick={'action' in c ? () => postMessage({ command: c.action }) : undefined}>
-          <div className={styles.statLabel}>
-            {c.label}
-            {'action' in c && <IconEye size={13} className={styles.statViewIcon} />}
+    <>
+      <div className={styles.statsRow}>
+        {cards.map((c, i) => (
+          <div key={i} className={`${styles.statCard} ${c.highlighted ? styles.statCardHighlighted : ''}`}>
+            <div className={styles.statLabel}>{c.label}</div>
+            <div className={`${styles.statValue} ${c.highlighted ? styles.statValueAccent : ''}`}
+              style={(c as any).isText ? { fontSize: 16, lineHeight: 1.4 } : undefined}>
+              {c.value}
+            </div>
+            <div className={styles.statBottom}>
+              <span className={styles.statSub}>{c.sub}</span>
+              {'type' in c && (
+                <div className={styles.statActions}>
+                  <Tooltip label="View messages">
+                    <button className={styles.statIconBtn} onClick={() => postMessage({ command: c.type === 'active' ? 'viewMessages' : 'viewDeadLetter' })}>
+                      <IconEye size={15} />
+                    </button>
+                  </Tooltip>
+                  {c.type === 'active' && (
+                    <Tooltip label="Send message">
+                      <button className={styles.statIconBtn} onClick={() => postMessage({ command: 'sendMessage' })}>
+                        <IconSend size={15} />
+                      </button>
+                    </Tooltip>
+                  )}
+                  {c.type === 'deadLetter' && (
+                    <Tooltip label="Transfer dead-letter">
+                      <button className={styles.statIconBtn} onClick={() => postMessage({ command: 'viewTransferDeadLetter' })}>
+                        <IconArrowForwardUp size={15} />
+                      </button>
+                    </Tooltip>
+                  )}
+                  <Tooltip label="Purge messages">
+                    <button className={styles.statIconBtn} onClick={() => confirmPurge(c.type!)}>
+                      <IconTrash size={15} />
+                    </button>
+                  </Tooltip>
+                </div>
+              )}
+            </div>
           </div>
-          <div className={`${styles.statValue} ${c.highlighted ? styles.statValueAccent : ''}`}
-            style={c.isText ? { fontSize: 16, lineHeight: 1.4 } : undefined}>
-            {c.value}
-          </div>
-          <div className={styles.statSub}>{c.sub}</div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+      <Modal
+        isOpen={purgeTarget !== null}
+        onClose={() => setPurgeTarget(null)}
+        title="Confirm Purge"
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPurgeTarget(null)}>Cancel</Button>
+            <Button variant="danger" onClick={doPurge}>Purge</Button>
+          </>
+        }
+      >
+        <p>Are you sure you want to purge all <strong>{purgeTarget === 'active' ? 'active' : 'dead-letter'}</strong> messages?</p>
+        <p style={{ color: 'var(--vscode-errorForeground)', fontSize: 12 }}>This action cannot be undone.</p>
+      </Modal>
+    </>
   );
 };
 
@@ -503,32 +543,27 @@ const SubscriptionCreateFields: React.FC<{ props: any; setP: (k: string, v: any)
 // ── SVG Icons ──
 
 const EntitySvgIcon: React.FC<{ kind: string }> = ({ kind }) => {
-  if (kind === 'queue') {
+  if (kind === 'queue' || kind === 'subscription') {
+    // Azure Service Bus Queue SVG (same as tree icon)
     return (
-      <svg viewBox="0 0 20 20" fill="none">
-        <rect x="2" y="7" width="16" height="6" rx="2.5" stroke="var(--vscode-button-background)" strokeWidth="1.4" />
-        <circle cx="6" cy="10" r="1.2" fill="var(--vscode-button-background)" />
-        <circle cx="10" cy="10" r="1.2" fill="var(--vscode-button-background)" />
-        <circle cx="14" cy="10" r="1.2" fill="var(--vscode-button-background)" />
+      <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 81 82" fillRule="evenodd" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1.333 0C.533 0 0 .533 0 1.333v16c0 .8.533 1.333 1.333 1.333h8c.8 0 1.333-.533 1.333-1.333v-6.666h58.667v6.667c0 .8.533 1.333 1.6 1.333h7.733c.8 0 1.333-.533 1.333-1.333v-8-8C80 .533 79.467 0 78.667 0H1.333zm77.334 80c.8 0 1.333-.533 1.333-1.333V62.934c0-.8-.533-1.333-1.333-1.333h-7.733c-.8 0-1.333.533-1.333 1.333v6.4H10.667v-6.667c0-.8-.533-1.333-1.6-1.333H1.333c-.8 0-1.333.533-1.333 1.6v15.733C0 79.467.533 80 1.333 80h77.334z" fill="#0072c6" stroke="none"/>
+        <path d="M19.718 41.138c-1.344 1.344-3.133 2.085-5.035 2.085s-3.69-.741-5.035-2.085L0 31.49v19.613h29.366V31.49l-9.648 9.648zm-5.035.652a5.65 5.65 0 0 0 4.022-1.666l10.661-10.661v-.565H0v.566l10.661 10.661a5.65 5.65 0 0 0 4.022 1.664zm55.669-.652c-1.344 1.344-3.133 2.085-5.035 2.085s-3.69-.741-5.035-2.085l-9.648-9.648v19.613H80V31.49l-9.648 9.648zm-5.035.652a5.65 5.65 0 0 0 4.022-1.666L80 29.464v-.565H50.634v.566l10.661 10.661a5.65 5.65 0 0 0 4.022 1.664z" stroke="none" fill="#59b4d9"/>
+        <path d="M41.301 38.047h4.934v3.894h-4.934zm-7.634 0h5.219v3.894h-5.219z" stroke="none" fill="#b8d432"/>
       </svg>
     );
   }
   if (kind === 'topic') {
+    // Azure Service Bus Topic SVG (same as tree icon)
     return (
-      <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="7" stroke="var(--vscode-button-background)" strokeWidth="1.4" />
-        <path d="M10 6v4l3 2" stroke="var(--vscode-button-background)" strokeWidth="1.4" strokeLinecap="round" />
+      <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 81 82" fillRule="evenodd" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1.333 0C.533 0 0 .533 0 1.333v16c0 .8.533 1.333 1.333 1.333h8c.8 0 1.333-.533 1.333-1.333v-6.666h58.667v6.667c0 .8.533 1.333 1.6 1.333h7.733c.8 0 1.333-.533 1.333-1.333v-8-8C80 .533 79.467 0 78.667 0H1.333zm77.334 80c.8 0 1.333-.533 1.333-1.333V62.934c0-.8-.533-1.333-1.333-1.333h-7.733c-.8 0-1.333.533-1.333 1.333v6.4H10.667v-6.667c0-.8-.533-1.333-1.6-1.333H1.333c-.8 0-1.333.533-1.333 1.6v15.733C0 79.467.533 80 1.333 80h77.334z" fill="#0072c6" stroke="none"/>
+        <path d="M29.519 36.447l3.452-3.452 2.556 2.556-3.452 3.451zm5.007-5.008l3.456-3.456 2.56 2.56L37.086 34zm7.57-2.463l-2.56-2.544 3.424-3.424 2.56 2.544zM39.535 52.5l2.561-2.56 3.424 3.426-2.561 2.56zm-1.551-1.572l-3.456-3.456 2.56-2.544 3.456 3.456zm-5.008-5.008l-3.456-3.456 2.56-2.544 3.44 3.44z" stroke="none" fill="#b8d432"/>
+        <path d="M57.81 24.395a4.44 4.44 0 0 1-3.158 1.309 4.43 4.43 0 0 1-3.158-1.309l-6.053-6.053v12.306h18.424V18.342l-6.054 6.053zm-3.161.409a3.54 3.54 0 0 0 2.523-1.045l6.69-6.69v-.355H45.438v.355l6.69 6.69a3.54 3.54 0 0 0 2.522 1.045zm3.161 31.15a4.44 4.44 0 0 1-3.158 1.309 4.43 4.43 0 0 1-3.158-1.309l-6.053-6.053v12.306h18.424V49.901l-6.054 6.053zm-3.161.41a3.54 3.54 0 0 0 2.523-1.045l6.69-6.689v-.355H45.438v.355l6.69 6.689a3.54 3.54 0 0 0 2.522 1.045zM19.718 40.599c-1.344 1.344-3.133 2.085-5.035 2.085s-3.69-.741-5.035-2.085L0 30.949v19.613h29.366V30.949l-9.648 9.65zm-5.035.652a5.65 5.65 0 0 0 4.022-1.666l10.661-10.661v-.565H0v.566l10.661 10.661a5.66 5.66 0 0 0 4.022 1.664z" stroke="none" fill="#59b4d9"/>
       </svg>
     );
   }
-  if (kind === 'subscription') {
-    return (
-      <svg viewBox="0 0 20 20" fill="none">
-        <path d="M4 6h12M4 10h12M4 14h12" stroke="var(--vscode-button-background)" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  // rule
+  // rule / subscription fallback
   return (
     <svg viewBox="0 0 20 20" fill="none">
       <path d="M5 10l3 3 7-7" stroke="var(--vscode-button-background)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />

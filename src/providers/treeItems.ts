@@ -65,7 +65,7 @@ export class QueueItem extends vscode.TreeItem {
     super(queueName, vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'queue';
     this.id = `ns:${nsId}:q:${queueName}`;
-    this.description = `${active}${dlq > 0 ? ` (dlq:${dlq})` : ''}`;
+    this.description = `(${active}, ${dlq}, ${scheduled})`;
     this.iconPath = mediaUri('queue.svg');
     this.tooltip = new vscode.MarkdownString(
       `**${queueName}**\n\n` +
@@ -102,8 +102,7 @@ export class SubscriptionItem extends vscode.TreeItem {
     super(subscriptionName, vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'subscription';
     this.id = `ns:${nsId}:t:${topicName}:s:${subscriptionName}`;
-    this.description = `${active}${dlq > 0 ? ` (dlq:${dlq})` : ''}`;
-    this.iconPath = new vscode.ThemeIcon(dlq > 0 ? 'warning' : 'mail');
+    this.description = `(${active}, ${dlq}, ${transferDlq})`;
     this.tooltip = new vscode.MarkdownString(
       `**${subscriptionName}**\n\nTopic: \`${topicName}\`\n\n- Active: ${active}\n- DLQ: ${dlq}\n- Transfer DLQ: ${transferDlq}`
     );

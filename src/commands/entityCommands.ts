@@ -4,6 +4,8 @@ import { NamespacesTreeProvider } from '../providers/namespacesTreeProvider';
 import { QueueItem, QueuesFolderItem, TopicItem, TopicsFolderItem, SubscriptionItem, RuleItem, NamespaceItem, DeadLetterItem } from '../providers/treeItems';
 import { WebviewHost } from '../webviews/webviewHost';
 import { showError, withProgress } from '../utils/errors';
+import { PurgeService } from '../services/purgeService';
+import { SendService } from '../services/sendService';
 
 function entityWebview(ctx: vscode.ExtensionContext, viewType: string, title: string, initData: any, onSave: (payload: any) => Promise<void>): WebviewHost {
   const host = new WebviewHost(ctx, { viewType, title, bundleId: 'entityEditor', initData });
@@ -27,7 +29,9 @@ function entityWebview(ctx: vscode.ExtensionContext, viewType: string, title: st
 export function registerEntityCommands(
   ctx: vscode.ExtensionContext,
   admin: AdminService,
-  tree: NamespacesTreeProvider
+  tree: NamespacesTreeProvider,
+  purge: PurgeService,
+  send: SendService
 ): void {
   // ---- Queue ----
   ctx.subscriptions.push(
@@ -54,6 +58,27 @@ export function registerEntityCommands(
         } else if (msg?.command === 'viewDeadLetter') {
           const dlqItem = new DeadLetterItem(item.nsId, { queue: item.queueName }, item.dlq);
           vscode.commands.executeCommand('serviceBusExplorer.messages.view', dlqItem);
+        } else if (msg?.command === 'viewTransferDeadLetter') {
+          const tdlqItem = new DeadLetterItem(item.nsId, { queue: item.queueName }, item.transferDlq, true);
+          vscode.commands.executeCommand('serviceBusExplorer.messages.view', tdlqItem);
+        } else if (msg?.command === 'sendMessage') {
+          vscode.commands.executeCommand('serviceBusExplorer.queue.send', item);
+        } else if (msg?.command === 'purgeActive') {
+          const ok = await vscode.window.showWarningMessage(`Purge all active messages from "${item.queueName}"?`, { modal: true }, 'Purge');
+          if (ok !== 'Purge') { host.post({ command: 'purgeCancelled' }); return; }
+          try {
+            await withProgress('Purging…', () => purge.purge(item.nsId, { queue: item.queueName }, 'receiveAndDelete'));
+            tree.invalidateNamespace(item.nsId);
+            host.post({ command: 'purgeDone' });
+          } catch (e) { showError('Purge failed', e); host.post({ command: 'purgeCancelled' }); }
+        } else if (msg?.command === 'purgeDeadLetter') {
+          const ok = await vscode.window.showWarningMessage(`Purge all dead-letter messages from "${item.queueName}"?`, { modal: true }, 'Purge');
+          if (ok !== 'Purge') { host.post({ command: 'purgeCancelled' }); return; }
+          try {
+            await withProgress('Purging DLQ…', () => purge.purge(item.nsId, { queue: item.queueName, subQueue: 'deadLetter' } as any, 'receiveAndDelete'));
+            tree.invalidateNamespace(item.nsId);
+            host.post({ command: 'purgeDone' });
+          } catch (e) { showError('Purge failed', e); host.post({ command: 'purgeCancelled' }); }
         }
       });
     }),

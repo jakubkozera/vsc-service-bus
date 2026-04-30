@@ -159,19 +159,73 @@
   border-color: var(--vscode-input-border);
 }
 
-.statCardClickable {
-  cursor: pointer;
-}
 
-.statCardClickable:hover {
-  border-color: var(--vscode-button-background);
-  background: color-mix(in srgb, var(--vscode-button-background) 8%, transparent);
-}
 
 .statViewIcon {
-  opacity: 0.5;
-  margin-left: 4px;
-  vertical-align: middle;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.statBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3px;
+}
+
+.statActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.statIconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 3px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.statIconBtn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+/* ── Tooltip ── */
+.tooltipWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  color: var(--vscode-editorHoverWidget-foreground, #cccccc);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.tooltipWrap:hover .tooltip {
+  opacity: 1;
 }
 
 .statCardHighlighted {
@@ -201,7 +255,6 @@
 .statSub {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
-  margin-top: 3px;
 }
 
 /* ── Two-column layout ── */
