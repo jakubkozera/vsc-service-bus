@@ -107,6 +107,7 @@ export class SubscriptionItem extends vscode.TreeItem {
     this.tooltip = new vscode.MarkdownString(
       `**${subscriptionName}**\n\nTopic: \`${topicName}\`\n\n- Active: ${active}\n- DLQ: ${dlq}\n- Transfer DLQ: ${transferDlq}`
     );
+    this.command = { command: 'serviceBusExplorer.subscription.edit', title: 'Open Subscription', arguments: [this] };
   }
 }
 

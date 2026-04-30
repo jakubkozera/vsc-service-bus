@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button, Input, Switch, Dropdown, CopyButton, DurationInput, NumberInput, Modal, LoadingOverlay } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
-import { IconEye, IconTrash, IconSend, IconArrowForwardUp, IconPencil } from '@tabler/icons-react';
+import { IconEye, IconTrash, IconSend, IconArrowForwardUp, IconPencil, IconPlus } from '@tabler/icons-react';
 import styles from './EntityEditor.module.css';
 
 // ── Types ──
@@ -246,7 +246,7 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
   const cards = useMemo(() => {
     if (kind === 'topic') {
       return [
-        { label: 'Subscriptions', value: runtime.subscriptionCount ?? 0, sub: 'active', highlighted: true },
+        { label: 'Subscriptions', value: runtime.subscriptionCount ?? 0, sub: 'active', highlighted: true, showCreate: true },
         { label: 'Scheduled', value: runtime.scheduledMessageCount ?? 0, sub: 'messages' },
         { label: 'Size', value: formatSize(runtime.sizeInBytes ?? 0), sub: `${(runtime.sizeInBytes ?? 0).toLocaleString()} bytes`, isText: true },
       ];
@@ -282,6 +282,15 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
             </div>
             <div className={styles.statBottom}>
               <span className={styles.statSub}>{c.sub}</span>
+              {(c as any).showCreate && (
+                <div className={styles.statActions}>
+                  <Tooltip label="Create Subscription">
+                    <button className={styles.statIconBtn} onClick={() => postMessage({ command: 'createSubscription' })}>
+                      <IconPlus size={16} />
+                    </button>
+                  </Tooltip>
+                </div>
+              )}
               {'type' in c && (
                 <div className={styles.statActions}>
                   <Tooltip label="View messages">
@@ -675,10 +684,22 @@ function formatSize(bytes: number): string {
 }
 
 function colorizeJson(json: string): string {
-  return json
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/("[\w]+")\s*:/g, `<span class="${styles.jsonKey}">$1</span>:`)
-    .replace(/:\s*(".*?")/g, `: <span class="${styles.jsonString}">$1</span>`)
-    .replace(/:\s*(true|false|null)/g, `: <span class="${styles.jsonNumber}">$1</span>`)
-    .replace(/:\s*(\d+\.?\d*)/g, `: <span class="${styles.jsonNumber}">$1</span>`);
+  const escaped = json
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Single-pass tokenization to prevent re-matching inside strings
+  return escaped.replace(
+    /("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+    (_match, str, trailingColon, kw, num) => {
+      if (str !== undefined) {
+        if (trailingColon) {
+          return `<span class="${styles.jsonKey}">${str}</span>${trailingColon}`;
+        }
+        return `<span class="${styles.jsonString}">${str}</span>`;
+      }
+      if (kw !== undefined) return `<span class="${styles.jsonNumber}">${kw}</span>`;
+      if (num !== undefined) return `<span class="${styles.jsonNumber}">${num}</span>`;
+      return _match;
+    }
+  );
 }

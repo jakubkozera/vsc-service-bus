@@ -186,6 +186,8 @@ export function registerEntityCommands(
       host.onMessage(async (msg: any) => {
         if (msg?.command === 'sendMessage') {
           vscode.commands.executeCommand('serviceBusExplorer.topic.send', item);
+        } else if (msg?.command === 'createSubscription') {
+          vscode.commands.executeCommand('serviceBusExplorer.subscription.create', item);
         } else if (msg?.command === 'rename') {
           try {
             const newName = msg.name;
