@@ -41,6 +41,8 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [copiedBody, setCopiedBody] = useState(false);
+  const [copiedAppProps, setCopiedAppProps] = useState(false);
   const { postMessage, subscribe } = useVSCodeMessaging<any, any>();
 
   // Keep a ref for selectedSeqs so the message handler always has the latest value
@@ -313,7 +315,9 @@ export const App: React.FC = () => {
                   <span className={styles.editorColumnHeaderDot} />
                   Body
                   {bodyLanguage !== 'plaintext' && <span style={{ opacity: 0.6, textTransform: 'none' }}>({bodyLanguage})</span>}
-                  <button className={styles.copyBtn} title="Copy body to clipboard" onClick={() => copyToClipboard(bodyText)}><IconCopy size={14} stroke={1.8} /></button>
+                  <button className={styles.copyBtn} title="Copy body to clipboard" onClick={() => { copyToClipboard(bodyText); setCopiedBody(true); setTimeout(() => setCopiedBody(false), 3000); }}>
+                    {copiedBody ? <IconCheck size={14} stroke={1.8} /> : <IconCopy size={14} stroke={1.8} />}
+                  </button>
                 </div>
                 <div className={styles.editorWrapper}>
                   <CodeViewer value={bodyText} language={bodyLanguage} />
@@ -326,7 +330,9 @@ export const App: React.FC = () => {
                   <div className={styles.editorColumnHeader}>
                     <span className={styles.editorColumnHeaderDot} />
                     Application Properties
-                    <button className={styles.copyBtn} title="Copy properties to clipboard" onClick={() => copyToClipboard(appPropsText)}><IconCopy size={14} stroke={1.8} /></button>
+                    <button className={styles.copyBtn} title="Copy properties to clipboard" onClick={() => { copyToClipboard(appPropsText); setCopiedAppProps(true); setTimeout(() => setCopiedAppProps(false), 3000); }}>
+                      {copiedAppProps ? <IconCheck size={14} stroke={1.8} /> : <IconCopy size={14} stroke={1.8} />}
+                    </button>
                   </div>
                   <div className={styles.editorWrapper}>
                     <CodeViewer value={appPropsText} language="json" />
