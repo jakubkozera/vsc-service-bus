@@ -207,26 +207,26 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
                 <div className={styles.statActions}>
                   <Tooltip label="View messages">
                     <button className={styles.statIconBtn} onClick={() => postMessage({ command: c.type === 'active' ? 'viewMessages' : c.type === 'deadLetter' ? 'viewDeadLetter' : 'viewScheduled' })}>
-                      <IconEye size={15} />
+                      <IconEye size={16} />
                     </button>
                   </Tooltip>
                   {(c.type === 'active' || c.type === 'scheduled') && (
                     <Tooltip label={c.type === 'scheduled' ? 'Schedule message' : 'Send message'}>
                       <button className={styles.statIconBtn} onClick={() => postMessage({ command: c.type === 'scheduled' ? 'sendScheduled' : 'sendMessage' })}>
-                        <IconSend size={15} />
+                        <IconSend size={16} />
                       </button>
                     </Tooltip>
                   )}
                   {c.type === 'deadLetter' && (
                     <Tooltip label="Transfer dead-letter">
                       <button className={styles.statIconBtn} onClick={() => postMessage({ command: 'viewTransferDeadLetter' })}>
-                        <IconArrowForwardUp size={15} />
+                        <IconArrowForwardUp size={16} />
                       </button>
                     </Tooltip>
                   )}
                   <Tooltip label={c.type === 'scheduled' ? 'Cancel scheduled' : 'Purge messages'}>
                     <button className={styles.statIconBtn} onClick={() => confirmPurge(c.type!)}>
-                      <IconTrash size={15} />
+                      <IconTrash size={16} />
                     </button>
                   </Tooltip>
                 </div>

@@ -50,11 +50,15 @@ function buildMessages(p: SendPayload): ServiceBusMessage[] {
 
 export function registerSendCommands(ctx: vscode.ExtensionContext, send: SendService, tree: NamespacesTreeProvider): void {
   const open = (target: { queue?: string; topic?: string }, nsId: string, title: string, isTestSender = false) => {
+    const iconPath = target.topic
+      ? { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-dark.svg') }
+      : { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-dark.svg') };
     const host = new WebviewHost(ctx, {
       viewType: isTestSender ? 'sbe.testSender' : 'sbe.sendMessage',
       title,
       bundleId: 'sendMessage',
-      initData: { target, isTestSender }
+      initData: { target, isTestSender },
+      iconPath
     });
     host.onMessage(async (msg: any) => {
       try {

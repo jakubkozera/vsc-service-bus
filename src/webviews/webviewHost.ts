@@ -14,6 +14,7 @@ export interface WebviewHostOptions {
   initData?: WebviewInitData;
   viewColumn?: vscode.ViewColumn;
   retainContextWhenHidden?: boolean;
+  iconPath?: vscode.Uri | { light: vscode.Uri; dark: vscode.Uri };
 }
 
 export class WebviewHost {
@@ -38,6 +39,9 @@ export class WebviewHost {
         localResourceRoots: [vscode.Uri.joinPath(ctx.extensionUri, 'webviews', 'dist')]
       }
     );
+    if (opts.iconPath) {
+      this.panel.iconPath = opts.iconPath;
+    }
     this.panel.webview.html = this.buildHtml();
     this.panel.webview.onDidReceiveMessage((msg: any) => {
       if (msg?.command === 'webviewReady' && opts.initData) {

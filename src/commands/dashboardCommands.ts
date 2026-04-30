@@ -12,7 +12,8 @@ export function registerDashboardCommands(ctx: vscode.ExtensionContext, admin: A
         viewType: 'sbe.dashboard',
         title: `Dashboard: ${item.meta.displayName}`,
         bundleId: 'dashboard',
-        initData: { namespaceName: item.meta.displayName, fqdn: item.meta.fqdn }
+        initData: { namespaceName: item.meta.displayName, fqdn: item.meta.fqdn },
+        iconPath: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'namespace.svg')
       });
 
       const refresh = async () => {

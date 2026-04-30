@@ -48,7 +48,10 @@ export function registerAdvancedCommands(
         viewType: 'sbe.listener',
         title: `Listener: ${label}`,
         bundleId: 'listener',
-        initData: { source: src }
+        initData: { source: src },
+        iconPath: src.topic
+          ? { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-dark.svg') }
+          : { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-dark.svg') }
       });
       let received = 0;
       const start = Date.now();

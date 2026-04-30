@@ -185,8 +185,8 @@
   justify-content: center;
   background: none;
   border: none;
-  padding: 3px;
-  border-radius: 3px;
+  padding: 4px;
+  border-radius: 4px;
   cursor: pointer;
   color: var(--vscode-descriptionForeground);
   opacity: 0.6;
