@@ -27,6 +27,76 @@ const MODE_OPTIONS = [
   { value: 'receiveAndDelete', label: 'Receive & Delete' },
 ];
 
+type FilterOp = 'contains' | 'equals' | 'startsWith' | 'endsWith' | 'gt' | 'gte' | 'lt' | 'lte' | 'before' | 'after';
+
+interface ColumnFilter {
+  op: FilterOp;
+  value: string;
+}
+
+const TEXT_OPS: { value: FilterOp; label: string }[] = [
+  { value: 'contains', label: 'Contains' },
+  { value: 'equals', label: 'Equals' },
+  { value: 'startsWith', label: 'Starts with' },
+  { value: 'endsWith', label: 'Ends with' },
+];
+
+const NUMBER_OPS: { value: FilterOp; label: string }[] = [
+  { value: 'equals', label: '=' },
+  { value: 'gt', label: '>' },
+  { value: 'gte', label: '≥' },
+  { value: 'lt', label: '<' },
+  { value: 'lte', label: '≤' },
+];
+
+const DATE_OPS: { value: FilterOp; label: string }[] = [
+  { value: 'contains', label: 'Contains' },
+  { value: 'after', label: 'After' },
+  { value: 'before', label: 'Before' },
+  { value: 'equals', label: 'Equals' },
+];
+
+function matchesFilter(cellValue: string | number | undefined, filter: ColumnFilter, type: 'text' | 'number' | 'date'): boolean {
+  const val = filter.value;
+  if (!val) return true;
+
+  if (type === 'number') {
+    const num = Number(val);
+    const cell = typeof cellValue === 'number' ? cellValue : Number(cellValue ?? 0);
+    if (isNaN(num)) return true;
+    switch (filter.op) {
+      case 'equals': return cell === num;
+      case 'gt': return cell > num;
+      case 'gte': return cell >= num;
+      case 'lt': return cell < num;
+      case 'lte': return cell <= num;
+      default: return true;
+    }
+  }
+
+  if (type === 'date') {
+    const cellStr = String(cellValue ?? '');
+    switch (filter.op) {
+      case 'contains': return cellStr.toLowerCase().includes(val.toLowerCase());
+      case 'after': return cellStr >= val;
+      case 'before': return cellStr <= val;
+      case 'equals': return cellStr.startsWith(val);
+      default: return true;
+    }
+  }
+
+  // text
+  const cellStr = String(cellValue ?? '').toLowerCase();
+  const search = val.toLowerCase();
+  switch (filter.op) {
+    case 'contains': return cellStr.includes(search);
+    case 'equals': return cellStr === search;
+    case 'startsWith': return cellStr.startsWith(search);
+    case 'endsWith': return cellStr.endsWith(search);
+    default: return true;
+  }
+}
+
 export const App: React.FC = () => {
   const [init, setInit] = useState<{ source: any; isDLQ: boolean; peekDefault: number; totalMessageCount?: number } | null>(null);
   const [mode, setMode] = useState<Mode>('peek');
@@ -34,7 +104,7 @@ export const App: React.FC = () => {
   const [items, setItems] = useState<Msg[]>([]);
   const [selected, setSelected] = useState<Msg | null>(null);
   const [selectedSeqs, setSelectedSeqs] = useState<Set<string>>(new Set());
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [columnFilters, setColumnFilters] = useState<Record<string, ColumnFilter>>({});
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dlqReasonOpen, setDlqReasonOpen] = useState<Msg | null>(null);
@@ -106,19 +176,18 @@ export const App: React.FC = () => {
   }, [postMessage, subscribe]);
 
   const filtered = useMemo(() => items.filter((m) => {
-    for (const [col, val] of Object.entries(columnFilters)) {
-      if (!val) continue;
+    for (const [col, filter] of Object.entries(columnFilters)) {
+      if (!filter.value) continue;
       if (col === 'sequenceNumber') {
-        if (!m.sequenceNumber.includes(val)) return false;
+        if (!matchesFilter(m.sequenceNumber, filter, 'number')) return false;
       } else if (col === 'messageId') {
-        if (!(m.messageId ?? '').toLowerCase().includes(val.toLowerCase())) return false;
+        if (!matchesFilter(m.messageId, filter, 'text')) return false;
       } else if (col === 'subject') {
-        if (!(m.subject ?? '').toLowerCase().includes(val.toLowerCase())) return false;
+        if (!matchesFilter(m.subject, filter, 'text')) return false;
       } else if (col === 'enqueuedTimeUtc') {
-        if (!(m.enqueuedTimeUtc ?? '').includes(val)) return false;
+        if (!matchesFilter(m.enqueuedTimeUtc, filter, 'date')) return false;
       } else if (col === 'deliveryCount') {
-        const num = Number(val);
-        if (!isNaN(num) && (m.deliveryCount ?? 0) !== num) return false;
+        if (!matchesFilter(m.deliveryCount, filter, 'number')) return false;
       }
     }
     return true;
@@ -345,7 +414,7 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {filtered.length === 0 && Object.keys(columnFilters).length === 0 && items.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}><IconMailboxOff size={32} stroke={1.5} /></div>
               No messages
@@ -371,7 +440,10 @@ export const App: React.FC = () => {
                     </span>
                     {activeFilter === 'sequenceNumber' && (
                       <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
-                        <input className={styles.filterInput} type="text" placeholder="Contains…" autoFocus value={columnFilters.sequenceNumber ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, sequenceNumber: e.target.value }))} />
+                        <select className={styles.filterSelect} value={columnFilters.sequenceNumber?.op ?? 'gte'} onChange={(e) => setColumnFilters(p => ({ ...p, sequenceNumber: { ...p.sequenceNumber ?? { op: 'gte', value: '' }, op: e.target.value as FilterOp } }))}>
+                          {NUMBER_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                        <input className={styles.filterInput} type="number" placeholder="Value…" autoFocus value={columnFilters.sequenceNumber?.value ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, sequenceNumber: { op: p.sequenceNumber?.op ?? 'gte', value: e.target.value } }))} />
                         <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.sequenceNumber; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
                       </div>
                     )}
@@ -383,7 +455,10 @@ export const App: React.FC = () => {
                     </span>
                     {activeFilter === 'messageId' && (
                       <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
-                        <input className={styles.filterInput} type="text" placeholder="Contains…" autoFocus value={columnFilters.messageId ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, messageId: e.target.value }))} />
+                        <select className={styles.filterSelect} value={columnFilters.messageId?.op ?? 'contains'} onChange={(e) => setColumnFilters(p => ({ ...p, messageId: { ...p.messageId ?? { op: 'contains', value: '' }, op: e.target.value as FilterOp } }))}>
+                          {TEXT_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                        <input className={styles.filterInput} type="text" placeholder="Value…" autoFocus value={columnFilters.messageId?.value ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, messageId: { op: p.messageId?.op ?? 'contains', value: e.target.value } }))} />
                         <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.messageId; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
                       </div>
                     )}
@@ -395,7 +470,10 @@ export const App: React.FC = () => {
                     </span>
                     {activeFilter === 'subject' && (
                       <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
-                        <input className={styles.filterInput} type="text" placeholder="Contains…" autoFocus value={columnFilters.subject ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, subject: e.target.value }))} />
+                        <select className={styles.filterSelect} value={columnFilters.subject?.op ?? 'contains'} onChange={(e) => setColumnFilters(p => ({ ...p, subject: { ...p.subject ?? { op: 'contains', value: '' }, op: e.target.value as FilterOp } }))}>
+                          {TEXT_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                        <input className={styles.filterInput} type="text" placeholder="Value…" autoFocus value={columnFilters.subject?.value ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, subject: { op: p.subject?.op ?? 'contains', value: e.target.value } }))} />
                         <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.subject; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
                       </div>
                     )}
@@ -407,7 +485,10 @@ export const App: React.FC = () => {
                     </span>
                     {activeFilter === 'enqueuedTimeUtc' && (
                       <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
-                        <input className={styles.filterInput} type="text" placeholder="e.g. 2024-01" autoFocus value={columnFilters.enqueuedTimeUtc ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, enqueuedTimeUtc: e.target.value }))} />
+                        <select className={styles.filterSelect} value={columnFilters.enqueuedTimeUtc?.op ?? 'contains'} onChange={(e) => setColumnFilters(p => ({ ...p, enqueuedTimeUtc: { ...p.enqueuedTimeUtc ?? { op: 'contains', value: '' }, op: e.target.value as FilterOp } }))}>
+                          {DATE_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                        <input className={styles.filterInput} type="text" placeholder="e.g. 2024-01-15" autoFocus value={columnFilters.enqueuedTimeUtc?.value ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, enqueuedTimeUtc: { op: p.enqueuedTimeUtc?.op ?? 'contains', value: e.target.value } }))} />
                         <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.enqueuedTimeUtc; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
                       </div>
                     )}
@@ -418,8 +499,11 @@ export const App: React.FC = () => {
                       <button className={`${styles.filterBtn} ${columnFilters.deliveryCount ? styles.filterBtnActive : ''}`} onClick={(e) => { e.stopPropagation(); setActiveFilter(activeFilter === 'deliveryCount' ? null : 'deliveryCount'); }} title="Filter"><IconFilter size={12} stroke={2} /></button>
                     </span>
                     {activeFilter === 'deliveryCount' && (
-                      <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
-                        <input className={styles.filterInput} type="number" placeholder="Equals…" autoFocus value={columnFilters.deliveryCount ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, deliveryCount: e.target.value }))} />
+                      <div className={`${styles.filterPopup} ${styles.filterPopupRight}`} onClick={(e) => e.stopPropagation()}>
+                        <select className={styles.filterSelect} value={columnFilters.deliveryCount?.op ?? 'equals'} onChange={(e) => setColumnFilters(p => ({ ...p, deliveryCount: { ...p.deliveryCount ?? { op: 'equals', value: '' }, op: e.target.value as FilterOp } }))}>
+                          {NUMBER_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                        <input className={styles.filterInput} type="number" placeholder="Value…" autoFocus value={columnFilters.deliveryCount?.value ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, deliveryCount: { op: p.deliveryCount?.op ?? 'equals', value: e.target.value } }))} />
                         <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.deliveryCount; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
                       </div>
                     )}
@@ -428,7 +512,12 @@ export const App: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((m, idx) => (
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={isPeekLock ? 7 : 6} className={styles.emptyStateCell}>
+                    <div className={styles.emptyIcon}><IconMailboxOff size={24} stroke={1.5} /></div>
+                    No matching messages
+                  </td></tr>
+                ) : filtered.map((m, idx) => (
                   <tr key={m.sequenceNumber}
                     className={`${styles.tr} ${selected?.sequenceNumber === m.sequenceNumber ? styles.trSelected : ''}`}
                     onClick={(e) => handleRowClick(m, idx, e)}>
