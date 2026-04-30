@@ -2,16 +2,6 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { App } from './App';
 
-// Mock Monaco Editor
-vi.mock('@monaco-editor/react', () => ({
-  default: ({ value, language }: any) => (
-    <div data-testid={`monaco-editor-${language}`}>{value}</div>
-  ),
-}));
-
-// Mock Monaco setup
-vi.mock('@shared/monaco/setup', () => ({}));
-
 // Mock Tabler Icons
 vi.mock('@tabler/icons-react', () => ({
   IconRefresh: (props: any) => <svg data-testid="icon-refresh" {...props} />,

@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Dropdown, Input, Modal, NumberInput } from '@shared/components';
+import { Button, Dropdown, Input, Modal, NumberInput, CodeViewer } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
-import '@shared/monaco/setup';
-import Editor from '@monaco-editor/react';
 import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowBackUp, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull } from '@tabler/icons-react';
 import styles from './Messages.module.css';
 
@@ -318,26 +316,7 @@ export const App: React.FC = () => {
                   <button className={styles.copyBtn} title="Copy body to clipboard" onClick={() => copyToClipboard(bodyText)}><IconCopy size={14} stroke={1.8} /></button>
                 </div>
                 <div className={styles.editorWrapper}>
-                  <Editor
-                    value={bodyText}
-                    language={bodyLanguage}
-                    theme="vs-dark"
-                    options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
-                      lineNumbers: 'on',
-                      fontSize: 12,
-                      wordWrap: 'on',
-                      renderLineHighlight: 'none',
-                      overviewRulerLanes: 0,
-                      hideCursorInOverviewRuler: true,
-                      scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
-                      padding: { top: 8, bottom: 8 },
-                      folding: true,
-                      contextmenu: false,
-                    }}
-                  />
+                  <CodeViewer value={bodyText} language={bodyLanguage} />
                 </div>
               </div>
 
@@ -350,26 +329,7 @@ export const App: React.FC = () => {
                     <button className={styles.copyBtn} title="Copy properties to clipboard" onClick={() => copyToClipboard(appPropsText)}><IconCopy size={14} stroke={1.8} /></button>
                   </div>
                   <div className={styles.editorWrapper}>
-                    <Editor
-                      value={appPropsText}
-                      language="json"
-                      theme="vs-dark"
-                      options={{
-                        readOnly: true,
-                        minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
-                        lineNumbers: 'on',
-                        fontSize: 12,
-                        wordWrap: 'on',
-                        renderLineHighlight: 'none',
-                        overviewRulerLanes: 0,
-                        hideCursorInOverviewRuler: true,
-                        scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
-                        padding: { top: 8, bottom: 8 },
-                        folding: true,
-                        contextmenu: false,
-                      }}
-                    />
+                    <CodeViewer value={appPropsText} language="json" />
                   </div>
                 </div>
               )}

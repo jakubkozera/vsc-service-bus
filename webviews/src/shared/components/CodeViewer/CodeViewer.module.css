@@ -1,0 +1,55 @@
+.codeViewer {
+  display: flex;
+  overflow: auto;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-radius: 4px;
+  font-family: var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+.lineNumbers {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  min-width: 36px;
+  text-align: right;
+  padding-right: 12px;
+  padding-left: 8px;
+  color: var(--vscode-editorLineNumber-foreground, #858585);
+  user-select: none;
+  flex-shrink: 0;
+  border-right: 1px solid var(--vscode-editorIndentGuide-background, #404040);
+}
+
+.code {
+  margin: 0;
+  padding: 8px 12px;
+  flex: 1;
+  overflow-x: auto;
+  white-space: pre;
+  word-wrap: normal;
+  color: var(--vscode-editor-foreground, #d4d4d4);
+}
+
+.key {
+  color: #9cdcfe;
+}
+
+.string {
+  color: #ce9178;
+}
+
+.number {
+  color: #b5cea8;
+}
+
+.keyword {
+  color: #569cd6;
+}
+
+.comment {
+  color: #6a9955;
+  font-style: italic;
+}

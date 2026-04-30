@@ -36,3 +36,6 @@ export type { CopyButtonProps } from './CopyButton/CopyButton';
 export { RadioGroup } from './RadioGroup/RadioGroup';
 export type { RadioGroupProps, RadioGroupOption } from './RadioGroup/RadioGroup';
 
+export { CodeViewer } from './CodeViewer/CodeViewer';
+export type { CodeViewerProps } from './CodeViewer/CodeViewer';
+

@@ -24,21 +24,11 @@ export default defineConfig({
       input: getEntries(),
       output: {
         entryFileNames: '[name]/assets/[name]-[hash].js',
-        chunkFileNames: (chunkInfo) => {
-          if (chunkInfo.name?.includes('monaco') || chunkInfo.moduleIds?.some((id: string) => id.includes('monaco-editor'))) {
-            return 'monaco/[name]-[hash].js';
-          }
-          return 'shared/[name]-[hash].js';
-        },
+        chunkFileNames: 'shared/[name]-[hash].js',
         assetFileNames: (info) => {
           if (info.name?.endsWith('.css')) return '[name]/assets/[name]-[hash][extname]';
           return 'shared/[name]-[hash][extname]';
         },
-        manualChunks(id) {
-          if (id.includes('monaco-editor')) {
-            return 'monaco-editor';
-          }
-        }
       }
     },
     outDir: 'dist',
