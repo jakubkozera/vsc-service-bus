@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Button, Input, Switch, Dropdown, CopyButton, DurationInput, NumberInput, Modal } from '@shared/components';
+import { Button, Input, Switch, Dropdown, CopyButton, DurationInput, NumberInput, Modal, LoadingOverlay } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
 import { IconEye, IconTrash, IconSend, IconArrowForwardUp } from '@tabler/icons-react';
 import styles from './EntityEditor.module.css';
@@ -35,6 +35,7 @@ export const App: React.FC = () => {
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saved' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [purging, setPurging] = useState(false);
   const { postMessage, subscribe } = useVSCodeMessaging<any, any>();
 
   useEffect(() => {
@@ -51,6 +52,13 @@ export const App: React.FC = () => {
         setSaveState('saved');
         setDirty(false);
         setTimeout(() => setSaveState('idle'), 3000);
+      } else if (msg.command === 'purgeDone') {
+        setPurging(false);
+        if (msg.runtime) {
+          setInit((prev) => prev ? { ...prev, runtime: msg.runtime } : prev);
+        }
+      } else if (msg.command === 'purgeCancelled') {
+        setPurging(false);
       }
     });
     postMessage({ command: 'webviewReady' });
@@ -107,9 +115,10 @@ export const App: React.FC = () => {
   // View/Edit mode — full dashboard
   return (
     <div className={styles.editor}>
+      {purging && <LoadingOverlay message="Purging messages…" />}
       <div className={styles.content}>
         <EntityHeader init={init} props={props} />
-        {init.runtime && <StatsRow runtime={init.runtime} kind={init.kind} postMessage={postMessage} />}
+        {init.runtime && <StatsRow runtime={init.runtime} kind={init.kind} postMessage={postMessage} setPurging={setPurging} />}
         {init.kind === 'queue' && <QueueEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
         {init.kind === 'topic' && <TopicEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
         {init.kind === 'subscription' && <SubscriptionEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
@@ -162,7 +171,7 @@ const EntityHeader: React.FC<{ init: InitData; props: any }> = ({ init, props })
 
 // ── Stats Row ──
 
-const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) => void }> = ({ runtime, kind, postMessage }) => {
+const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) => void; setPurging: (v: boolean) => void }> = ({ runtime, kind, postMessage, setPurging }) => {
   const [purgeTarget, setPurgeTarget] = useState<'active' | 'deadLetter' | 'scheduled' | null>(null);
 
   const cards = useMemo(() => {
@@ -187,6 +196,7 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
   const doPurge = () => {
     if (!purgeTarget) return;
     const cmd = purgeTarget === 'active' ? 'purgeActive' : purgeTarget === 'deadLetter' ? 'purgeDeadLetter' : 'purgeScheduled';
+    setPurging(true);
     postMessage({ command: cmd });
     setPurgeTarget(null);
   };

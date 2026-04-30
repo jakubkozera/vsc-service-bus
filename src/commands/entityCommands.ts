@@ -74,24 +74,20 @@ export function registerEntityCommands(
         } else if (msg?.command === 'sendScheduled') {
           vscode.commands.executeCommand('serviceBusExplorer.queue.send', item);
         } else if (msg?.command === 'purgeActive') {
-          const ok = await vscode.window.showWarningMessage(`Purge all active messages from "${item.queueName}"?`, { modal: true }, 'Purge');
-          if (ok !== 'Purge') { host.post({ command: 'purgeCancelled' }); return; }
           try {
             await withProgress('Purging…', () => purge.purge(item.nsId, { queue: item.queueName }, 'receiveAndDelete'));
             tree.invalidateNamespace(item.nsId);
-            host.post({ command: 'purgeDone' });
+            const { runtime } = await admin.getQueue(item.nsId, item.queueName);
+            host.post({ command: 'purgeDone', runtime });
           } catch (e) { showError('Purge failed', e); host.post({ command: 'purgeCancelled' }); }
         } else if (msg?.command === 'purgeDeadLetter') {
-          const ok = await vscode.window.showWarningMessage(`Purge all dead-letter messages from "${item.queueName}"?`, { modal: true }, 'Purge');
-          if (ok !== 'Purge') { host.post({ command: 'purgeCancelled' }); return; }
           try {
             await withProgress('Purging DLQ…', () => purge.purge(item.nsId, { queue: item.queueName, subQueue: 'deadLetter' } as any, 'receiveAndDelete'));
             tree.invalidateNamespace(item.nsId);
-            host.post({ command: 'purgeDone' });
+            const { runtime } = await admin.getQueue(item.nsId, item.queueName);
+            host.post({ command: 'purgeDone', runtime });
           } catch (e) { showError('Purge failed', e); host.post({ command: 'purgeCancelled' }); }
         } else if (msg?.command === 'purgeScheduled') {
-          const ok = await vscode.window.showWarningMessage(`Cancel all scheduled messages from "${item.queueName}"?`, { modal: true }, 'Cancel All');
-          if (ok !== 'Cancel All') { host.post({ command: 'purgeCancelled' }); return; }
           try {
             await withProgress('Cancelling scheduled…', async () => {
               const peeked = await messages.peek(item.nsId, { queue: item.queueName }, 500);
@@ -101,7 +97,8 @@ export function registerEntityCommands(
               }
             });
             tree.invalidateNamespace(item.nsId);
-            host.post({ command: 'purgeDone' });
+            const { runtime } = await admin.getQueue(item.nsId, item.queueName);
+            host.post({ command: 'purgeDone', runtime });
           } catch (e) { showError('Cancel scheduled failed', e); host.post({ command: 'purgeCancelled' }); }
         }
       });
