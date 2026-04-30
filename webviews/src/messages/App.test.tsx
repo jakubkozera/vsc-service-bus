@@ -20,7 +20,6 @@ vi.mock('@tabler/icons-react', () => ({
   IconSkull: (props: any) => <svg data-testid="icon-skull" {...props} />,
   IconChevronLeft: (props: any) => <svg data-testid="icon-chevron-left" {...props} />,
   IconChevronRight: (props: any) => <svg data-testid="icon-chevron-right" {...props} />,
-  IconLoader2: (props: any) => <svg data-testid="icon-loader2" {...props} />,
 }));
 
 // Mock messaging hook
@@ -90,20 +89,22 @@ describe('Messages App', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ command: 'webviewReady' });
   });
 
-  it('shows spinner icon during fetch', () => {
+  it('shows custom loader during fetch', () => {
     render(<App />);
     sendInit(initData);
     sendMessages([sampleMsg]);
     
+    const fetchButton = screen.getByTitle('Fetch messages');
+    
     // Initially should show download icon
     expect(screen.getByTestId('icon-download')).toBeInTheDocument();
-    expect(screen.queryByTestId('icon-loader2')).not.toBeInTheDocument();
+    expect(fetchButton.querySelector('.loader')).not.toBeInTheDocument();
 
     // Click fetch
-    fireEvent.click(screen.getByTitle('Fetch messages'));
+    fireEvent.click(fetchButton);
     
-    // Should show spinner
-    expect(screen.getByTestId('icon-loader2')).toBeInTheDocument();
+    // Should show loader div instead of icon
+    expect(fetchButton.querySelector('.loader')).toBeInTheDocument();
     expect(screen.queryByTestId('icon-download')).not.toBeInTheDocument();
   });
 
@@ -406,6 +407,18 @@ describe('Messages App', () => {
       expect(screen.getByText('#2')).toBeInTheDocument();
       const checkboxes = screen.getAllByRole('checkbox') as HTMLInputElement[];
       expect(checkboxes[2].checked).toBe(false);
+    });
+
+    it('does not show detail panel when clicking checkbox', () => {
+      render(<App />);
+      sendInit(initData);
+      sendMessages(makeMessages(3));
+
+      const checkboxes = screen.getAllByRole('checkbox') as HTMLInputElement[];
+      fireEvent.click(checkboxes[2]);
+      expect(checkboxes[2].checked).toBe(true);
+      // Detail panel should not appear (no #2 heading)
+      expect(screen.queryByText('#2')).not.toBeInTheDocument();
     });
   });
 

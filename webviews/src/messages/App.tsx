@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Dropdown, Input, Modal, NumberInput, CodeViewer } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
-import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowBackUp, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull, IconChevronLeft, IconChevronRight, IconLoader2 } from '@tabler/icons-react';
+import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowBackUp, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import styles from './Messages.module.css';
 
 interface Msg {
@@ -250,7 +250,7 @@ export const App: React.FC = () => {
           <NumberInput label="Count" value={String(count)} onChange={(e) => setCount(Number(e.target.value) || 1)} style={{ width: 150 }} />
           <Input label="Filter" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="search…" style={{ width: 160 }} />
           <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={fetchMessages} disabled={loading} title="Fetch messages">
-            {loading ? <IconLoader2 size={16} stroke={1.8} className={styles.spinner} /> : <IconDownload size={16} stroke={1.8} />}
+            {loading ? <div className={styles.loader} /> : <IconDownload size={16} stroke={1.8} />}
             Fetch
           </button>
         </div>
@@ -263,6 +263,60 @@ export const App: React.FC = () => {
       <div className={styles.mainArea}>
         {/* Table */}
         <div className={styles.tablePanel}>
+          {/* Footer bar - always visible */}
+          <div className={styles.footerBar}>
+            <div className={styles.footerLeft}>
+              <span>{filtered.length} messages</span>
+              {hasSelection && <span>{selectedSeqs.size} selected</span>}
+            </div>
+            <div className={styles.footerCenter}>
+              {totalPages > 1 && (
+                <>
+                  <button className={styles.pageBtn} disabled={!hasPrevPage || loading} onClick={goPrevPage} title="Previous page">
+                    <IconChevronLeft size={16} stroke={2} />
+                  </button>
+                  <span className={styles.pageInfo}>Page {page} of {totalPages}</span>
+                  <button className={styles.pageBtn} disabled={!hasNextPage || loading} onClick={goNextPage} title="Next page">
+                    <IconChevronRight size={16} stroke={2} />
+                  </button>
+                </>
+              )}
+            </div>
+            <div className={styles.footerRight}>
+              {hasMessages && (
+                <button className={styles.toolBtn} onClick={() => {
+                  if (hasSelection) {
+                    setItems((prev) => prev.filter((m) => !selectedSeqs.has(m.sequenceNumber)));
+                    setSelectedSeqs(new Set());
+                    setSelected(null);
+                  } else {
+                    setItems([]);
+                    setSelected(null);
+                  }
+                }} title={hasSelection ? 'Remove selected from list' : 'Clear list'}>
+                  <IconClearAll size={16} stroke={1.8} />{hasSelection ? 'Remove selected' : 'Clear'}
+                </button>
+              )}
+              {hasMessages && (
+                <button className={styles.toolBtn} onClick={() => postMessage({ command: 'export', items: hasSelection ? items.filter(m => selectedSeqs.has(m.sequenceNumber)) : items })} title={hasSelection ? 'Export selected to JSON' : 'Export all to JSON'}>
+                  <IconFileExport size={16} stroke={1.8} />{hasSelection ? 'Export selected' : 'Export'}
+                </button>
+              )}
+              {hasSelection && (
+                <>
+                  {init.isDLQ && (
+                    <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={() => { setActionLoading(true); postMessage({ command: 'resubmit', sequenceNumbers: Array.from(selectedSeqs), count }); }} title="Resubmit selected messages">
+                      <IconArrowBackUp size={16} stroke={1.8} />Resubmit
+                    </button>
+                  )}
+                  <button className={styles.toolBtn} onClick={() => postMessage({ command: 'pickMoveTarget' })} title="Move selected to another queue or topic">
+                    <IconArrowMoveRight size={16} stroke={1.8} />Move to…
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
           {filtered.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}><IconMailboxOff size={32} stroke={1.5} /></div>
@@ -298,6 +352,7 @@ export const App: React.FC = () => {
                     <td className={styles.td}>
                       <input type="checkbox" className={styles.checkbox}
                         checked={selectedSeqs.has(m.sequenceNumber)}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={(e) => {
                           e.stopPropagation();
                           const next = new Set(selectedSeqs);
@@ -324,60 +379,6 @@ export const App: React.FC = () => {
               </tbody>
             </table>
           )}
-        </div>
-
-        {/* Footer bar - always visible */}
-        <div className={styles.footerBar}>
-          <div className={styles.footerLeft}>
-            <span className={styles.statBadge}>{filtered.length} messages</span>
-            {hasSelection && <span className={styles.statBadge}>{selectedSeqs.size} selected</span>}
-          </div>
-          <div className={styles.footerCenter}>
-            {totalPages > 1 && (
-              <>
-                <button className={styles.pageBtn} disabled={!hasPrevPage || loading} onClick={goPrevPage} title="Previous page">
-                  <IconChevronLeft size={16} stroke={2} />
-                </button>
-                <span className={styles.pageInfo}>Page {page} of {totalPages}</span>
-                <button className={styles.pageBtn} disabled={!hasNextPage || loading} onClick={goNextPage} title="Next page">
-                  <IconChevronRight size={16} stroke={2} />
-                </button>
-              </>
-            )}
-          </div>
-          <div className={styles.footerRight}>
-            {hasMessages && (
-              <button className={styles.toolBtn} onClick={() => {
-                if (hasSelection) {
-                  setItems((prev) => prev.filter((m) => !selectedSeqs.has(m.sequenceNumber)));
-                  setSelectedSeqs(new Set());
-                  setSelected(null);
-                } else {
-                  setItems([]);
-                  setSelected(null);
-                }
-              }} title={hasSelection ? 'Remove selected from list' : 'Clear list'}>
-                <IconClearAll size={16} stroke={1.8} />{hasSelection ? 'Remove selected' : 'Clear'}
-              </button>
-            )}
-            {hasMessages && (
-              <button className={styles.toolBtn} onClick={() => postMessage({ command: 'export', items: hasSelection ? items.filter(m => selectedSeqs.has(m.sequenceNumber)) : items })} title={hasSelection ? 'Export selected to JSON' : 'Export all to JSON'}>
-                <IconFileExport size={16} stroke={1.8} />{hasSelection ? 'Export selected' : 'Export'}
-              </button>
-            )}
-            {hasSelection && (
-              <>
-                {init.isDLQ && (
-                  <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={() => { setActionLoading(true); postMessage({ command: 'resubmit', sequenceNumbers: Array.from(selectedSeqs), count }); }} title="Resubmit selected messages">
-                    <IconArrowBackUp size={16} stroke={1.8} />Resubmit
-                  </button>
-                )}
-                <button className={styles.toolBtn} onClick={() => postMessage({ command: 'pickMoveTarget' })} title="Move selected to another queue or topic">
-                  <IconArrowMoveRight size={16} stroke={1.8} />Move to…
-                </button>
-              </>
-            )}
-          </div>
         </div>
 
         {/* Detail panel (bottom, resizable) */}

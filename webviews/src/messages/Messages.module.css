@@ -467,7 +467,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 16px;
-  border-top: 1px solid var(--vscode-panel-border);
+  border-bottom: 1px solid var(--vscode-panel-border);
   background: var(--vscode-sideBar-background);
   flex-shrink: 0;
   min-height: 40px;
@@ -495,9 +495,14 @@
   justify-content: flex-end;
 }
 
-/* ── Spinner animation ── */
-.spinner {
-  animation: spin 1s linear infinite;
+/* ── Custom loader ── */
+.loader {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--vscode-button-foreground);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
 @keyframes spin {
