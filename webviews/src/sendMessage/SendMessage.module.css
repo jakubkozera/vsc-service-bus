@@ -280,7 +280,7 @@
 
 .repeatWrap {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
   margin-right: auto;
 }
@@ -289,8 +289,7 @@
   font-size: 11px;
   color: var(--vscode-descriptionForeground);
   white-space: nowrap;
-  display: flex;
-  align-items: center;
+  padding-bottom: 6px;
 }
 
 /* ── Responsive: stack on narrow ── */

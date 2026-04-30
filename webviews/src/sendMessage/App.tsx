@@ -21,7 +21,7 @@ const TYPE_OPTIONS = [
 export const App: React.FC = () => {
   const [init, setInit] = useState<InitData | null>(null);
   const [target, setTarget] = useState<{ queue?: string; topic?: string }>({});
-  const [body, setBody] = useState('Hello from Service Bus Explorer\n');
+  const [body, setBody] = useState('{}');
   const [contentType, setContentType] = useState('application/json');
   const [subject, setSubject] = useState('');
   const [messageId, setMessageId] = useState('');
