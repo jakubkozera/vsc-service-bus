@@ -1,0 +1,89 @@
+.codeEditor {
+  display: flex;
+  height: 100%;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-radius: 4px;
+  font-family: var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  tab-size: 2;
+  border: 1px solid var(--vscode-input-border);
+  overflow: hidden;
+}
+
+.codeEditor:focus-within {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.lineNumbers {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  min-width: 36px;
+  text-align: right;
+  padding-right: 12px;
+  padding-left: 8px;
+  color: var(--vscode-editorLineNumber-foreground, #858585);
+  user-select: none;
+  flex-shrink: 0;
+  border-right: 1px solid var(--vscode-editorIndentGuide-background, #404040);
+  overflow: hidden;
+}
+
+.editorArea {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.highlight,
+.textarea {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 8px 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  tab-size: inherit;
+  white-space: pre;
+  word-wrap: normal;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.highlight {
+  pointer-events: none;
+  color: var(--vscode-editor-foreground, #d4d4d4);
+  z-index: 1;
+}
+
+.textarea {
+  resize: none;
+  z-index: 2;
+  color: transparent;
+  caret-color: var(--vscode-editor-foreground, #d4d4d4);
+  -webkit-text-fill-color: transparent;
+}
+
+.textarea::selection {
+  background: var(--vscode-editor-selectionBackground, rgba(58, 61, 65, 0.5));
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.textarea::placeholder {
+  color: var(--vscode-input-placeholderForeground, #6a6a6a);
+  -webkit-text-fill-color: var(--vscode-input-placeholderForeground, #6a6a6a);
+}
+
+/* Syntax tokens */
+.key { color: #9cdcfe; }
+.string { color: #ce9178; }
+.number { color: #b5cea8; }
+.keyword { color: #569cd6; }
+

@@ -39,3 +39,6 @@ export type { RadioGroupProps, RadioGroupOption } from './RadioGroup/RadioGroup'
 export { CodeViewer } from './CodeViewer/CodeViewer';
 export type { CodeViewerProps } from './CodeViewer/CodeViewer';
 
+export { CodeEditor } from './CodeEditor/CodeEditor';
+export type { CodeEditorProps } from './CodeEditor/CodeEditor';
+

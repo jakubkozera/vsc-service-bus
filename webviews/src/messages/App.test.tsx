@@ -14,6 +14,10 @@ vi.mock('@tabler/icons-react', () => ({
   IconFileExport: (props: any) => <svg data-testid="icon-file-export" {...props} />,
   IconArrowBackUp: (props: any) => <svg data-testid="icon-arrow-back-up" {...props} />,
   IconArrowMoveRight: (props: any) => <svg data-testid="icon-arrow-move-right" {...props} />,
+  IconCheck: (props: any) => <svg data-testid="icon-check" {...props} />,
+  IconRotate: (props: any) => <svg data-testid="icon-rotate" {...props} />,
+  IconPlayerPause: (props: any) => <svg data-testid="icon-player-pause" {...props} />,
+  IconSkull: (props: any) => <svg data-testid="icon-skull" {...props} />,
 }));
 
 // Mock messaging hook

@@ -46,7 +46,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerNamespaceCommands(context, store, factory, admin);
   registerEntityCommands(context, admin, tree, purge, send, messages);
   registerMessageCommands(context, messages, send, admin, tree);
-  registerSendCommands(context, send, tree);
+  registerSendCommands(context, send, tree, admin);
   registerDashboardCommands(context, admin);
   registerImportExportCommands(context, store, admin, tree);
   registerAdvancedCommands(context, purge, listener, tree, admin);
