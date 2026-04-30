@@ -15,6 +15,7 @@ interface InitData {
   subscriptionName?: string;
   properties?: any;
   runtime?: any;
+  availableTargets?: { name: string; kind: 'queue' | 'topic' }[];
 }
 
 // ── Constants ──
@@ -119,9 +120,9 @@ export const App: React.FC = () => {
       <div className={styles.content}>
         <EntityHeader init={init} props={props} postMessage={postMessage} />
         {init.runtime && <StatsRow runtime={init.runtime} kind={init.kind} postMessage={postMessage} setPurging={setPurging} />}
-        {init.kind === 'queue' && <QueueEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
+        {init.kind === 'queue' && <QueueEditor props={props} setP={setP} readonly={init.mode === 'view'} availableTargets={init.availableTargets} />}
         {init.kind === 'topic' && <TopicEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
-        {init.kind === 'subscription' && <SubscriptionEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
+        {init.kind === 'subscription' && <SubscriptionEditor props={props} setP={setP} readonly={init.mode === 'view'} availableTargets={init.availableTargets} />}
         {init.kind === 'rule' && <RuleEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
         {init.runtime && <JsonViewer data={init.runtime} title="Runtime — raw response" />}
       </div>
@@ -344,40 +345,53 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
 
 // ── Queue Editor ──
 
-const QueueEditor: React.FC<{ props: any; setP: (k: string, v: any) => void; readonly: boolean }> = ({ props, setP, readonly }) => (
-  <>
-    <div className={styles.twoCol}>
-      <Panel title="Timing & Delivery" dotColor="var(--vscode-button-background)">
-        <DurationInput label="Lock duration" value={props.lockDuration ?? ''} onChange={(v) => setP('lockDuration', v)} disabled={readonly} />
-        <DurationInput label="Default message TTL" value={props.defaultMessageTimeToLive ?? ''} onChange={(v) => setP('defaultMessageTimeToLive', v)} disabled={readonly} />
-        <DurationInput label="Auto delete on idle" value={props.autoDeleteOnIdle ?? ''} onChange={(v) => setP('autoDeleteOnIdle', v)} disabled={readonly} />
-        <DurationInput label="Duplicate detection history time window" value={props.duplicateDetectionHistoryTimeWindow ?? ''} onChange={(v) => setP('duplicateDetectionHistoryTimeWindow', v)} disabled={readonly} />
-      </Panel>
-      <Panel title="Storage" dotColor="#4ec9a0">
-        <NumberInput label="Max delivery count" value={String(props.maxDeliveryCount ?? '')} onChange={(e) => setP('maxDeliveryCount', Number(e.target.value))} disabled={readonly}
-          helperText="After this many attempts the message moves to dead-letter" />
-        <NumberInput label="Max size (MB)" value={String(props.maxSizeInMegabytes ?? '')} onChange={(e) => setP('maxSizeInMegabytes', Number(e.target.value))} disabled={readonly} />
-        <div>
-          <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Status</label>
-          <Dropdown options={STATUS_OPTIONS} value={props.status ?? 'Active'} onChange={(v) => setP('status', v)} disabled={readonly} />
+const QueueEditor: React.FC<{ props: any; setP: (k: string, v: any) => void; readonly: boolean; availableTargets?: { name: string; kind: 'queue' | 'topic' }[] }> = ({ props, setP, readonly, availableTargets }) => {
+  const forwardOptions = useMemo(() => [
+    { value: '', label: '(none)' },
+    ...(availableTargets ?? []).map(t => ({ value: t.name, label: t.name }))
+  ], [availableTargets]);
+
+  return (
+    <>
+      <div className={styles.twoCol}>
+        <Panel title="Timing & Delivery" dotColor="var(--vscode-button-background)">
+          <DurationInput label="Lock duration" value={props.lockDuration ?? ''} onChange={(v) => setP('lockDuration', v)} disabled={readonly} />
+          <DurationInput label="Default message TTL" value={props.defaultMessageTimeToLive ?? ''} onChange={(v) => setP('defaultMessageTimeToLive', v)} disabled={readonly} />
+          <DurationInput label="Auto delete on idle" value={props.autoDeleteOnIdle ?? ''} onChange={(v) => setP('autoDeleteOnIdle', v)} disabled={readonly} />
+          <DurationInput label="Duplicate detection history time window" value={props.duplicateDetectionHistoryTimeWindow ?? ''} onChange={(v) => setP('duplicateDetectionHistoryTimeWindow', v)} disabled={readonly} />
+        </Panel>
+        <Panel title="Storage" dotColor="#4ec9a0">
+          <NumberInput label="Max delivery count" value={String(props.maxDeliveryCount ?? '')} onChange={(e) => setP('maxDeliveryCount', Number(e.target.value))} disabled={readonly}
+            helperText="After this many attempts the message moves to dead-letter" />
+          <NumberInput label="Max size (MB)" value={String(props.maxSizeInMegabytes ?? '')} onChange={(e) => setP('maxSizeInMegabytes', Number(e.target.value))} disabled={readonly} />
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Status</label>
+            <Dropdown options={STATUS_OPTIONS} value={props.status ?? 'Active'} onChange={(v) => setP('status', v)} disabled={readonly} />
+          </div>
+        </Panel>
+      </div>
+      <Panel title="Routing" dotColor="#569cd6">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Forward to</label>
+            <Dropdown options={forwardOptions} value={props.forwardTo ?? ''} onChange={(v) => setP('forwardTo', v || undefined)} disabled={readonly} enableSearch={forwardOptions.length > 5} placeholder="queue or topic name…" />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Forward dead-letter to</label>
+            <Dropdown options={forwardOptions} value={props.forwardDeadLetteredMessagesTo ?? ''} onChange={(v) => setP('forwardDeadLetteredMessagesTo', v || undefined)} disabled={readonly} enableSearch={forwardOptions.length > 5} placeholder="queue or topic name…" />
+          </div>
         </div>
       </Panel>
-    </div>
-    <Panel title="Routing" dotColor="#569cd6">
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <Input label="Forward to" value={props.forwardTo ?? ''} onChange={(e) => setP('forwardTo', e.target.value || undefined)} disabled={readonly} placeholder="queue or topic name…" />
-        <Input label="Forward dead-letter to" value={props.forwardDeadLetteredMessagesTo ?? ''} onChange={(e) => setP('forwardDeadLetteredMessagesTo', e.target.value || undefined)} disabled={readonly} placeholder="queue or topic name…" />
-      </div>
-    </Panel>
-    <FeatureToggles readonly={readonly} features={[
-      { key: 'requiresSession', label: 'Requires session', desc: 'Messages must include a SessionId — enables FIFO ordering', checked: !!props.requiresSession, immutable: true },
-      { key: 'requiresDuplicateDetection', label: 'Requires duplicate detection', desc: 'Discards messages with duplicate MessageId within the window', checked: !!props.requiresDuplicateDetection, immutable: true },
-      { key: 'enablePartitioning', label: 'Enable partitioning', desc: 'Distributes the queue across multiple brokers for higher throughput', checked: !!props.enablePartitioning, immutable: true },
-      { key: 'deadLetteringOnMessageExpiration', label: 'Dead-letter on message expiration', desc: 'Expired messages are moved to the dead-letter sub-queue', checked: !!props.deadLetteringOnMessageExpiration },
-      { key: 'enableBatchedOperations', label: 'Enable batched operations', desc: 'Improves throughput by batching store operations', checked: props.enableBatchedOperations !== false },
-    ]} setP={setP} />
-  </>
-);
+      <FeatureToggles readonly={readonly} features={[
+        { key: 'requiresSession', label: 'Requires session', desc: 'Messages must include a SessionId — enables FIFO ordering', checked: !!props.requiresSession, immutable: true },
+        { key: 'requiresDuplicateDetection', label: 'Requires duplicate detection', desc: 'Discards messages with duplicate MessageId within the window', checked: !!props.requiresDuplicateDetection, immutable: true },
+        { key: 'enablePartitioning', label: 'Enable partitioning', desc: 'Distributes the queue across multiple brokers for higher throughput', checked: !!props.enablePartitioning, immutable: true },
+        { key: 'deadLetteringOnMessageExpiration', label: 'Dead-letter on message expiration', desc: 'Expired messages are moved to the dead-letter sub-queue', checked: !!props.deadLetteringOnMessageExpiration },
+        { key: 'enableBatchedOperations', label: 'Enable batched operations', desc: 'Improves throughput by batching store operations', checked: props.enableBatchedOperations !== false },
+      ]} setP={setP} />
+    </>
+  );
+};
 
 // ── Topic Editor ──
 
@@ -406,31 +420,44 @@ const TopicEditor: React.FC<{ props: any; setP: (k: string, v: any) => void; rea
 
 // ── Subscription Editor ──
 
-const SubscriptionEditor: React.FC<{ props: any; setP: (k: string, v: any) => void; readonly: boolean }> = ({ props, setP, readonly }) => (
-  <>
-    <div className={styles.twoCol}>
-      <Panel title="Timing & Delivery" dotColor="var(--vscode-button-background)">
-        <DurationInput label="Lock duration" value={props.lockDuration ?? ''} onChange={(v) => setP('lockDuration', v)} disabled={readonly} />
-        <DurationInput label="Default message TTL" value={props.defaultMessageTimeToLive ?? ''} onChange={(v) => setP('defaultMessageTimeToLive', v)} disabled={readonly} />
-        <NumberInput label="Max delivery count" value={String(props.maxDeliveryCount ?? '')} onChange={(e) => setP('maxDeliveryCount', Number(e.target.value))} disabled={readonly}
-          helperText="After this many attempts the message moves to dead-letter" />
-      </Panel>
-      <Panel title="Routing" dotColor="#4ec9a0">
-        <div>
-          <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Status</label>
-          <Dropdown options={STATUS_OPTIONS} value={props.status ?? 'Active'} onChange={(v) => setP('status', v)} disabled={readonly} />
-        </div>
-        <Input label="Forward to" value={props.forwardTo ?? ''} onChange={(e) => setP('forwardTo', e.target.value || undefined)} disabled={readonly} placeholder="queue or topic name…" />
-        <Input label="Forward dead-letter to" value={props.forwardDeadLetteredMessagesTo ?? ''} onChange={(e) => setP('forwardDeadLetteredMessagesTo', e.target.value || undefined)} disabled={readonly} placeholder="queue or topic name…" />
-      </Panel>
-    </div>
-    <FeatureToggles readonly={readonly} features={[
-      { key: 'requiresSession', label: 'Requires session', desc: 'Messages must include a SessionId — enables FIFO ordering', checked: !!props.requiresSession, immutable: true },
-      { key: 'deadLetteringOnMessageExpiration', label: 'Dead-letter on message expiration', desc: 'Expired messages are moved to the dead-letter sub-queue', checked: !!props.deadLetteringOnMessageExpiration },
-      { key: 'deadLetteringOnFilterEvaluationExceptions', label: 'Dead-letter on filter exceptions', desc: 'Messages causing filter evaluation errors go to dead-letter', checked: !!props.deadLetteringOnFilterEvaluationExceptions },
-    ]} setP={setP} />
-  </>
-);
+const SubscriptionEditor: React.FC<{ props: any; setP: (k: string, v: any) => void; readonly: boolean; availableTargets?: { name: string; kind: 'queue' | 'topic' }[] }> = ({ props, setP, readonly, availableTargets }) => {
+  const forwardOptions = useMemo(() => [
+    { value: '', label: '(none)' },
+    ...(availableTargets ?? []).map(t => ({ value: t.name, label: t.name }))
+  ], [availableTargets]);
+
+  return (
+    <>
+      <div className={styles.twoCol}>
+        <Panel title="Timing & Delivery" dotColor="var(--vscode-button-background)">
+          <DurationInput label="Lock duration" value={props.lockDuration ?? ''} onChange={(v) => setP('lockDuration', v)} disabled={readonly} />
+          <DurationInput label="Default message TTL" value={props.defaultMessageTimeToLive ?? ''} onChange={(v) => setP('defaultMessageTimeToLive', v)} disabled={readonly} />
+          <NumberInput label="Max delivery count" value={String(props.maxDeliveryCount ?? '')} onChange={(e) => setP('maxDeliveryCount', Number(e.target.value))} disabled={readonly}
+            helperText="After this many attempts the message moves to dead-letter" />
+        </Panel>
+        <Panel title="Routing" dotColor="#4ec9a0">
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Status</label>
+            <Dropdown options={STATUS_OPTIONS} value={props.status ?? 'Active'} onChange={(v) => setP('status', v)} disabled={readonly} />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Forward to</label>
+            <Dropdown options={forwardOptions} value={props.forwardTo ?? ''} onChange={(v) => setP('forwardTo', v || undefined)} disabled={readonly} enableSearch={forwardOptions.length > 5} placeholder="queue or topic name…" />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Forward dead-letter to</label>
+            <Dropdown options={forwardOptions} value={props.forwardDeadLetteredMessagesTo ?? ''} onChange={(v) => setP('forwardDeadLetteredMessagesTo', v || undefined)} disabled={readonly} enableSearch={forwardOptions.length > 5} placeholder="queue or topic name…" />
+          </div>
+        </Panel>
+      </div>
+      <FeatureToggles readonly={readonly} features={[
+        { key: 'requiresSession', label: 'Requires session', desc: 'Messages must include a SessionId — enables FIFO ordering', checked: !!props.requiresSession, immutable: true },
+        { key: 'deadLetteringOnMessageExpiration', label: 'Dead-letter on message expiration', desc: 'Expired messages are moved to the dead-letter sub-queue', checked: !!props.deadLetteringOnMessageExpiration },
+        { key: 'deadLetteringOnFilterEvaluationExceptions', label: 'Dead-letter on filter exceptions', desc: 'Messages causing filter evaluation errors go to dead-letter', checked: !!props.deadLetteringOnFilterEvaluationExceptions },
+      ]} setP={setP} />
+    </>
+  );
+};
 
 // ── Rule Editor ──
 
@@ -492,6 +519,25 @@ interface FeatureToggle {
   immutable?: boolean;
 }
 
+const LockIcon: React.FC = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={styles.lockIcon}
+  >
+    <path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z" />
+    <path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" />
+    <path d="M8 11v-4a4 4 0 1 1 8 0v4" />
+  </svg>
+);
+
 const FeatureToggles: React.FC<{ features: FeatureToggle[]; setP: (k: string, v: any) => void; readonly: boolean }> = ({ features, setP, readonly }) => (
   <div className={styles.panel}>
     <div className={styles.panelHeader}>
@@ -503,18 +549,21 @@ const FeatureToggles: React.FC<{ features: FeatureToggle[]; setP: (k: string, v:
         {features.map((f) => {
           const locked = readonly || !!f.immutable;
           return (
-            <div key={f.key} className={`${styles.toggleRow} ${locked ? styles.toggleDisabled : ''}`}
-              title={f.immutable ? 'This property can only be set when creating the entity' : undefined}>
+            <div key={f.key} className={`${styles.toggleRow} ${locked ? styles.toggleDisabled : ''}`}>
               <div className={styles.toggleInfo}>
                 <div className={styles.toggleName}>
                   {f.label}
-                  {f.immutable && <span className={styles.lockIcon} title="Set at creation only">🔒</span>}
                 </div>
                 <div className={styles.toggleDesc}>
                   {f.desc}
                   {f.immutable && <span className={styles.immutableHint}> — cannot be changed after creation</span>}
                 </div>
               </div>
+              {f.immutable && (
+                <Tooltip label="This property can only be set when creating the entity">
+                  <LockIcon />
+                </Tooltip>
+              )}
               <Switch checked={f.checked} onChange={(v) => setP(f.key, v)} disabled={locked} />
             </div>
           );

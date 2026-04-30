@@ -7,6 +7,30 @@ import { WebviewHost } from '../webviews/webviewHost';
 import { showError, withProgress } from '../utils/errors';
 import { PurgeService } from '../services/purgeService';
 import { SendService } from '../services/sendService';
+import { TreeCache } from '../state/treeCache';
+
+async function loadAvailableTargets(admin: AdminService, nsId: string, cache?: TreeCache): Promise<{ name: string; kind: 'queue' | 'topic' }[]> {
+  // Use cache if available
+  if (cache) {
+    const cached = cache.getAvailableTargets(nsId);
+    if (cached) return cached;
+  }
+  try {
+    const [queues, topics] = await Promise.all([admin.listQueues(nsId), admin.listTopics(nsId)]);
+    // Populate cache for future use
+    if (cache) {
+      const entry = cache.ensure(nsId);
+      if (!entry.queues) entry.queues = queues;
+      if (!entry.topics) entry.topics = topics;
+    }
+    return [
+      ...queues.map(q => ({ name: q.name, kind: 'queue' as const })),
+      ...topics.map(t => ({ name: t.name, kind: 'topic' as const }))
+    ];
+  } catch {
+    return [];
+  }
+}
 
 function entityWebview(ctx: vscode.ExtensionContext, viewType: string, title: string, initData: any, onSave: (payload: any) => Promise<void>): WebviewHost {
   const kind = initData.kind as string;
@@ -37,7 +61,8 @@ export function registerEntityCommands(
   tree: NamespacesTreeProvider,
   purge: PurgeService,
   send: SendService,
-  messages: MessagesService
+  messages: MessagesService,
+  cache?: TreeCache
 ): void {
   // ---- Queue ----
   ctx.subscriptions.push(
@@ -50,9 +75,12 @@ export function registerEntityCommands(
     }),
     vscode.commands.registerCommand('serviceBusExplorer.queue.open', async (item?: QueueItem) => {
       if (!item) return;
-      const { properties, runtime } = await admin.getQueue(item.nsId, item.queueName);
+      const [{ properties, runtime }, availableTargets] = await Promise.all([
+        admin.getQueue(item.nsId, item.queueName),
+        loadAvailableTargets(admin, item.nsId, cache)
+      ]);
       const host = entityWebview(ctx, 'sbe.queueOpen', `Queue: ${item.queueName}`,
-        { mode: 'edit', kind: 'queue', name: item.queueName, properties, runtime },
+        { mode: 'edit', kind: 'queue', name: item.queueName, properties, runtime, availableTargets },
         async (p) => {
           await admin.updateQueue(item.nsId, p.properties);
           tree.invalidateNamespace(item.nsId);
@@ -126,9 +154,12 @@ export function registerEntityCommands(
     }),
     vscode.commands.registerCommand('serviceBusExplorer.queue.edit', async (item?: QueueItem) => {
       if (!item) return;
-      const { properties, runtime } = await admin.getQueue(item.nsId, item.queueName);
+      const [{ properties, runtime }, availableTargets] = await Promise.all([
+        admin.getQueue(item.nsId, item.queueName),
+        loadAvailableTargets(admin, item.nsId, cache)
+      ]);
       entityWebview(ctx, 'sbe.queueEdit', `Queue: ${item.queueName}`,
-        { mode: 'edit', kind: 'queue', name: item.queueName, properties, runtime },
+        { mode: 'edit', kind: 'queue', name: item.queueName, properties, runtime, availableTargets },
         async (p) => {
           await admin.updateQueue(item.nsId, p.properties);
           tree.invalidateNamespace(item.nsId);
@@ -266,9 +297,12 @@ export function registerEntityCommands(
     }),
     vscode.commands.registerCommand('serviceBusExplorer.subscription.edit', async (item?: SubscriptionItem) => {
       if (!item) return;
-      const { properties, runtime } = await admin.getSubscription(item.nsId, item.topicName, item.subscriptionName);
+      const [{ properties, runtime }, availableTargets] = await Promise.all([
+        admin.getSubscription(item.nsId, item.topicName, item.subscriptionName),
+        loadAvailableTargets(admin, item.nsId, cache)
+      ]);
       const host = entityWebview(ctx, 'sbe.subEdit', `Subscription: ${item.subscriptionName}`,
-        { mode: 'edit', kind: 'subscription', topicName: item.topicName, name: item.subscriptionName, properties, runtime },
+        { mode: 'edit', kind: 'subscription', topicName: item.topicName, name: item.subscriptionName, properties, runtime, availableTargets },
         async (p) => {
           await admin.updateSubscription(item.nsId, p.properties);
           tree.invalidateNamespace(item.nsId);

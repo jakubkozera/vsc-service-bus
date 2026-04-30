@@ -31,6 +31,16 @@ export class TreeCache {
     return c;
   }
 
+  /** Returns cached queue/topic names for forward-to dropdowns, or undefined if not cached. */
+  getAvailableTargets(nsId: string): { name: string; kind: 'queue' | 'topic' }[] | undefined {
+    const c = this.get(nsId);
+    if (!c || !c.queues || !c.topics) return undefined;
+    return [
+      ...c.queues.map(q => ({ name: q.name, kind: 'queue' as const })),
+      ...c.topics.map(t => ({ name: t.name, kind: 'topic' as const }))
+    ];
+  }
+
   invalidate(nsId: string): void {
     this.map.delete(nsId);
   }

@@ -372,13 +372,12 @@
 
 .toggleDisabled {
   opacity: 0.5;
-  cursor: help;
+  cursor: not-allowed;
 }
 
 .lockIcon {
-  margin-left: 6px;
-  font-size: 11px;
-  cursor: help;
+  color: var(--vscode-descriptionForeground);
+  flex-shrink: 0;
 }
 
 .immutableHint {
