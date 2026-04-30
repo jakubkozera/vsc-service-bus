@@ -1,0 +1,585 @@
+{
+  "name": "service-bus-explorer",
+  "displayName": "Service Bus Explorer",
+  "description": "Manage Azure Service Bus namespaces, queues, topics, subscriptions, rules and messages from VS Code.",
+  "version": "0.1.0",
+  "publisher": "jakub",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Azure"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:serviceBusExplorer.namespacesView"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "serviceBusExplorer",
+          "title": "Service Bus Explorer",
+          "icon": "media/service-bus.svg"
+        }
+      ]
+    },
+    "views": {
+      "serviceBusExplorer": [
+        {
+          "id": "serviceBusExplorer.namespacesView",
+          "name": "Namespaces",
+          "icon": "media/service-bus.svg",
+          "contextualTitle": "Service Bus Explorer"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "serviceBusExplorer.namespacesView",
+        "contents": "No Service Bus namespaces have been added yet.\n[Add Namespace](command:serviceBusExplorer.addNamespace)\nYou can connect using a SAS connection string or Microsoft Entra ID."
+      }
+    ],
+    "commands": [
+      {
+        "command": "serviceBusExplorer.hello",
+        "title": "Service Bus Explorer: Hello"
+      },
+      {
+        "command": "serviceBusExplorer.addNamespace",
+        "title": "Add Namespace",
+        "category": "Service Bus",
+        "icon": "$(add)"
+      },
+      {
+        "command": "serviceBusExplorer.removeNamespace",
+        "title": "Remove Namespace",
+        "category": "Service Bus",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "serviceBusExplorer.editNamespace",
+        "title": "Edit Namespace",
+        "category": "Service Bus",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "serviceBusExplorer.testConnection",
+        "title": "Test Connection",
+        "category": "Service Bus",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "serviceBusExplorer.refreshTree",
+        "title": "Refresh",
+        "category": "Service Bus",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "serviceBusExplorer.refreshNode",
+        "title": "Refresh Node",
+        "category": "Service Bus",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "serviceBusExplorer.copyName",
+        "title": "Copy Name",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.queue.create",
+        "title": "Create Queue",
+        "category": "Service Bus",
+        "icon": "$(add)"
+      },
+      {
+        "command": "serviceBusExplorer.queue.open",
+        "title": "Open Queue",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.queue.edit",
+        "title": "Edit Queue",
+        "category": "Service Bus",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "serviceBusExplorer.queue.delete",
+        "title": "Delete Queue",
+        "category": "Service Bus",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "serviceBusExplorer.queue.send",
+        "title": "Send Message",
+        "category": "Service Bus",
+        "icon": "$(send)"
+      },
+      {
+        "command": "serviceBusExplorer.queue.purge",
+        "title": "Purge Messages",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.topic.create",
+        "title": "Create Topic",
+        "category": "Service Bus",
+        "icon": "$(add)"
+      },
+      {
+        "command": "serviceBusExplorer.topic.open",
+        "title": "Open Topic",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.topic.edit",
+        "title": "Edit Topic",
+        "category": "Service Bus",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "serviceBusExplorer.topic.delete",
+        "title": "Delete Topic",
+        "category": "Service Bus",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "serviceBusExplorer.topic.send",
+        "title": "Send Message",
+        "category": "Service Bus",
+        "icon": "$(send)"
+      },
+      {
+        "command": "serviceBusExplorer.subscription.create",
+        "title": "Create Subscription",
+        "category": "Service Bus",
+        "icon": "$(add)"
+      },
+      {
+        "command": "serviceBusExplorer.subscription.open",
+        "title": "Open Subscription",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.subscription.edit",
+        "title": "Edit Subscription",
+        "category": "Service Bus",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "serviceBusExplorer.subscription.delete",
+        "title": "Delete Subscription",
+        "category": "Service Bus",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "serviceBusExplorer.subscription.purge",
+        "title": "Purge Messages",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.rule.create",
+        "title": "Create Rule",
+        "category": "Service Bus",
+        "icon": "$(add)"
+      },
+      {
+        "command": "serviceBusExplorer.rule.edit",
+        "title": "Edit Rule",
+        "category": "Service Bus",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "serviceBusExplorer.rule.delete",
+        "title": "Delete Rule",
+        "category": "Service Bus",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "serviceBusExplorer.messages.view",
+        "title": "View Messages",
+        "category": "Service Bus",
+        "icon": "$(inbox)"
+      },
+      {
+        "command": "serviceBusExplorer.messages.viewDeadLetter",
+        "title": "View Dead-letter Messages",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.dashboard.open",
+        "title": "Open Dashboard",
+        "category": "Service Bus",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "serviceBusExplorer.namespace.export",
+        "title": "Export Namespace…",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.namespace.import",
+        "title": "Import to Namespace…",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.entity.export",
+        "title": "Export Entity…",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.listener.start",
+        "title": "Start Listener",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.testSender.open",
+        "title": "Send Test Messages…",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.legacyXml.import",
+        "title": "Import from legacy XML…",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.tree.filter",
+        "title": "Filter Tree…",
+        "category": "Service Bus",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "serviceBusExplorer.batch.delete",
+        "title": "Delete Selected",
+        "category": "Service Bus",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "serviceBusExplorer.batch.disable",
+        "title": "Disable Selected",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.batch.enable",
+        "title": "Enable Selected",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.batch.export",
+        "title": "Export Selected",
+        "category": "Service Bus"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "serviceBusExplorer.addNamespace",
+          "when": "view == serviceBusExplorer.namespacesView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "serviceBusExplorer.tree.filter",
+          "when": "view == serviceBusExplorer.namespacesView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "serviceBusExplorer.refreshTree",
+          "when": "view == serviceBusExplorer.namespacesView",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "serviceBusExplorer.testConnection",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "serviceBusExplorer.dashboard.open",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "serviceBusExplorer.namespace.export",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "group": "2_io@1"
+        },
+        {
+          "command": "serviceBusExplorer.namespace.import",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "group": "2_io@2"
+        },
+        {
+          "command": "serviceBusExplorer.legacyXml.import",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "group": "2_io@3"
+        },
+        {
+          "command": "serviceBusExplorer.editNamespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "group": "9_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.removeNamespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "group": "9_modify@2"
+        },
+        {
+          "command": "serviceBusExplorer.refreshNode",
+          "when": "view == serviceBusExplorer.namespacesView",
+          "group": "z_refresh",
+          "icon": "$(refresh)"
+        },
+        {
+          "command": "serviceBusExplorer.queue.create",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queuesFolder",
+          "group": "1_modify@1",
+          "icon": "$(add)"
+        },
+        {
+          "command": "serviceBusExplorer.queue.create",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queuesFolder",
+          "group": "inline@1",
+          "icon": "$(add)"
+        },
+        {
+          "command": "serviceBusExplorer.queue.edit",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "1_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.queue.send",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "1_modify@2"
+        },
+        {
+          "command": "serviceBusExplorer.messages.view",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "1_modify@3"
+        },
+        {
+          "command": "serviceBusExplorer.queue.purge",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "8_advanced@1"
+        },
+        {
+          "command": "serviceBusExplorer.entity.export",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "2_io@1"
+        },
+        {
+          "command": "serviceBusExplorer.queue.delete",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "9_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.listener.start",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "8_advanced@2"
+        },
+        {
+          "command": "serviceBusExplorer.testSender.open",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "8_advanced@3"
+        },
+        {
+          "command": "serviceBusExplorer.topic.create",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topicsFolder",
+          "group": "1_modify@1",
+          "icon": "$(add)"
+        },
+        {
+          "command": "serviceBusExplorer.topic.create",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topicsFolder",
+          "group": "inline@1",
+          "icon": "$(add)"
+        },
+        {
+          "command": "serviceBusExplorer.topic.edit",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topic",
+          "group": "1_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.topic.send",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topic",
+          "group": "1_modify@2"
+        },
+        {
+          "command": "serviceBusExplorer.subscription.create",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topic",
+          "group": "1_modify@3"
+        },
+        {
+          "command": "serviceBusExplorer.entity.export",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topic",
+          "group": "2_io@1"
+        },
+        {
+          "command": "serviceBusExplorer.topic.delete",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topic",
+          "group": "9_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.testSender.open",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topic",
+          "group": "8_advanced@1"
+        },
+        {
+          "command": "serviceBusExplorer.subscription.edit",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == subscription",
+          "group": "1_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.messages.view",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == subscription",
+          "group": "1_modify@2"
+        },
+        {
+          "command": "serviceBusExplorer.rule.create",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == subscription",
+          "group": "1_modify@3"
+        },
+        {
+          "command": "serviceBusExplorer.subscription.purge",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == subscription",
+          "group": "8_advanced@1"
+        },
+        {
+          "command": "serviceBusExplorer.subscription.delete",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == subscription",
+          "group": "9_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.listener.start",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == subscription",
+          "group": "8_advanced@2"
+        },
+        {
+          "command": "serviceBusExplorer.rule.edit",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == rule",
+          "group": "1_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.rule.delete",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == rule",
+          "group": "9_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.messages.viewDeadLetter",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /deadLetter|transferDeadLetter/",
+          "group": "1_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.copyName",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /queue|topic|subscription|rule|namespace/",
+          "group": "z_copy"
+        },
+        {
+          "command": "serviceBusExplorer.batch.delete",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /queue|topic|subscription/",
+          "group": "z_batch@1"
+        },
+        {
+          "command": "serviceBusExplorer.batch.disable",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /queue|topic|subscription/",
+          "group": "z_batch@2"
+        },
+        {
+          "command": "serviceBusExplorer.batch.enable",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /queue|topic|subscription/",
+          "group": "z_batch@3"
+        },
+        {
+          "command": "serviceBusExplorer.batch.export",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /queue|topic|subscription/",
+          "group": "z_batch@4"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Service Bus Explorer",
+      "properties": {
+        "serviceBusExplorer.peekDefaultCount": {
+          "type": "number",
+          "default": 50,
+          "description": "Default number of messages to peek."
+        },
+        "serviceBusExplorer.receiveDefaultTimeoutMs": {
+          "type": "number",
+          "default": 5000,
+          "description": "Default receive timeout in milliseconds."
+        },
+        "serviceBusExplorer.maxLockRenewMinutes": {
+          "type": "number",
+          "default": 5,
+          "description": "Maximum lock renew duration in minutes."
+        },
+        "serviceBusExplorer.dashboard.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 15,
+          "description": "Dashboard auto-refresh interval in seconds."
+        },
+        "serviceBusExplorer.dashboard.dlqWarnThreshold": {
+          "type": "number",
+          "default": 1,
+          "description": "Highlight rows when DLQ count is at or above this threshold."
+        },
+        "serviceBusExplorer.tree.alwaysShowDLQ": {
+          "type": "boolean",
+          "default": true,
+          "description": "Always show the dead-letter sub-queue node under each queue/subscription."
+        },
+        "serviceBusExplorer.dlq.deleteTimeoutMs": {
+          "type": "number",
+          "default": 30000
+        },
+        "serviceBusExplorer.dlq.deleteMaxAttempts": {
+          "type": "number",
+          "default": 5
+        },
+        "serviceBusExplorer.purge.batchSize": {
+          "type": "number",
+          "default": 100
+        },
+        "serviceBusExplorer.purge.timeoutMs": {
+          "type": "number",
+          "default": 60000
+        },
+        "serviceBusExplorer.listener.maxLogEntries": {
+          "type": "number",
+          "default": 10000
+        },
+        "serviceBusExplorer.testSender.maxConcurrency": {
+          "type": "number",
+          "default": 16
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run install:webviews && npm run build:webviews && npm run build:ext",
+    "install:webviews": "npm --prefix webviews install --no-audit --no-fund",
+    "build:ext": "node esbuild.config.js",
+    "build:webviews": "npm --prefix webviews run build",
+    "watch": "node esbuild.config.js --watch",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/uuid": "^9.0.7",
+    "@types/vscode": "^1.90.0",
+    "@vitest/coverage-v8": "^4.1.5",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.5"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.4.0",
+    "@azure/service-bus": "^7.9.5",
+    "uuid": "^9.0.1"
+  }
+}

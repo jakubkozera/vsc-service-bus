@@ -1,0 +1,87 @@
+/**
+ * VS Code Theme CSS Variables
+ * These variables are automatically provided by VS Code in webviews
+ * This file provides fallback values for development and testing
+ */
+
+:root {
+  /* Colors */
+  --vscode-foreground: #cccccc;
+  --vscode-background: #1e1e1e;
+  --vscode-editor-background: #1e1e1e;
+  --vscode-editor-foreground: #d4d4d4;
+  
+  /* Input */
+  --vscode-input-background: #3c3c3c;
+  --vscode-input-foreground: #cccccc;
+  --vscode-input-border: #3c3c3c;
+  --vscode-input-placeholderForeground: #a6a6a6;
+  
+  /* Button */
+  --vscode-button-background: #0e639c;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #1177bb;
+  --vscode-button-secondaryBackground: #3a3d41;
+  --vscode-button-secondaryForeground: #cccccc;
+  --vscode-button-secondaryHoverBackground: #45494e;
+  
+  /* Widget */
+  --vscode-widget-border: #303031;
+  
+  /* List */
+  --vscode-list-activeSelectionBackground: #094771;
+  --vscode-list-activeSelectionForeground: #ffffff;
+  --vscode-list-hoverBackground: #2a2d2e;
+  --vscode-list-focusBackground: #062f4a;
+  
+  /* Panel */
+  --vscode-panel-border: #303031;
+  --vscode-sideBar-background: #252526;
+  --vscode-sideBar-foreground: #cccccc;
+  
+  /* Title Bar */
+  --vscode-titleBar-activeBackground: #3c3c3c;
+  --vscode-titleBar-activeForeground: #cccccc;
+  
+  /* Focus */
+  --vscode-focusBorder: #007fd4;
+  
+  /* Description */
+  --vscode-descriptionForeground: #a6a6a6;
+  
+  /* Error */
+  --vscode-errorForeground: #f48771;
+  
+  /* Link */
+  --vscode-textLink-foreground: #3794ff;
+  --vscode-textLink-activeForeground: #3794ff;
+  
+  /* Toolbar */
+  --vscode-toolbar-hoverBackground: #2a2d2e;
+  
+  /* Font */
+  --vscode-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --vscode-font-size: 13px;
+  --vscode-font-weight: normal;
+}
+
+/* Light theme overrides (when data-vscode-theme-kind="vscode-light") */
+body[data-vscode-theme-kind="vscode-light"] {
+  --vscode-foreground: #616161;
+  --vscode-background: #ffffff;
+  --vscode-editor-background: #ffffff;
+  --vscode-editor-foreground: #000000;
+  
+  --vscode-input-background: #ffffff;
+  --vscode-input-foreground: #616161;
+  --vscode-input-border: #cecece;
+  
+  --vscode-button-background: #007acc;
+  --vscode-button-hoverBackground: #005a9e;
+  
+  --vscode-list-activeSelectionBackground: #0060c0;
+  --vscode-list-hoverBackground: #e8e8e8;
+  
+  --vscode-panel-border: #dddddd;
+  --vscode-sideBar-background: #f3f3f3;
+}

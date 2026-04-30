@@ -1,0 +1,123 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+}
+
+.required {
+  color: var(--vscode-errorForeground);
+  margin-left: 2px;
+}
+
+.inputs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inputGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 72px;
+  padding: 4px 8px;
+  padding-right: 24px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 2px;
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Hide default number input spinners */
+.input::-webkit-inner-spin-button,
+.input::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+  display: none !important;
+}
+
+.input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.controls {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  pointer-events: none;
+}
+
+.controlButton {
+  width: 18px;
+  height: 13px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-foreground);
+  opacity: 0.6;
+  transition: opacity 0.2s, background-color 0.2s;
+  border-radius: 2px;
+  pointer-events: auto;
+}
+
+.controlButton:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.controlButton:active:not(:disabled) {
+  background: var(--vscode-toolbar-activeBackground);
+}
+
+.controlButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.controlButton svg {
+  display: block;
+}
+
+.unit {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  min-width: 35px;
+}

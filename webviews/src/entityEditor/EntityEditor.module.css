@@ -1,0 +1,411 @@
+/* ── Entity Editor Styles ── */
+
+/* Layout */
+.editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+/* Animations */
+.content > * {
+  animation: fadeIn 0.25s ease backwards;
+}
+.content > *:nth-child(1) { animation-delay: 0.02s; }
+.content > *:nth-child(2) { animation-delay: 0.06s; }
+.content > *:nth-child(3) { animation-delay: 0.1s; }
+.content > *:nth-child(4) { animation-delay: 0.14s; }
+.content > *:nth-child(5) { animation-delay: 0.18s; }
+.content > *:nth-child(6) { animation-delay: 0.22s; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Breadcrumb ── */
+.breadcrumb {
+  height: 28px;
+  background: var(--vscode-sideBar-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  flex-shrink: 0;
+}
+
+.breadcrumbSep {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.5;
+}
+
+.breadcrumbCurrent {
+  color: var(--vscode-foreground);
+}
+
+/* ── Entity header ── */
+.entityHeader {
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.entityIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-button-background) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-button-background) 40%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.entityIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.entityName {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  letter-spacing: -0.01em;
+}
+
+.entityMeta {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 2px;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.entityActions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Status badge */
+.badgeStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badgeActive {
+  background: color-mix(in srgb, #4ec9a0 12%, transparent);
+  color: #4ec9a0;
+  border: 1px solid color-mix(in srgb, #4ec9a0 25%, transparent);
+}
+
+.badgeDisabled {
+  background: color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent);
+  color: var(--vscode-errorForeground);
+  border: 1px solid color-mix(in srgb, var(--vscode-errorForeground) 25%, transparent);
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Stats row ── */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.statCard {
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  transition: border-color 0.15s ease;
+  cursor: default;
+}
+
+.statCard:hover {
+  border-color: var(--vscode-input-border);
+}
+
+.statCardClickable {
+  cursor: pointer;
+}
+
+.statCardClickable:hover {
+  border-color: var(--vscode-button-background);
+  background: color-mix(in srgb, var(--vscode-button-background) 8%, transparent);
+}
+
+.statViewIcon {
+  opacity: 0.5;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.statCardHighlighted {
+  border-color: color-mix(in srgb, var(--vscode-button-background) 40%, transparent);
+  background: color-mix(in srgb, var(--vscode-button-background) 10%, transparent);
+}
+
+.statLabel {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.statValueAccent {
+  color: var(--vscode-button-background);
+}
+
+.statSub {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 3px;
+}
+
+/* ── Two-column layout ── */
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 650px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Section panel ── */
+.panel {
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.panelHeader {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+}
+
+.panelHeaderDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vscode-button-background);
+  flex-shrink: 0;
+}
+
+.panelBody {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Feature toggles ── */
+.togglesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  gap: 12px;
+}
+
+.toggleRow:hover {
+  background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+}
+
+.toggleInfo {
+  flex: 1;
+}
+
+.toggleName {
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+
+.toggleDesc {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 2px;
+}
+
+.toggleDisabled {
+  opacity: 0.5;
+  cursor: help;
+}
+
+.lockIcon {
+  margin-left: 6px;
+  font-size: 11px;
+  cursor: help;
+}
+
+.immutableHint {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* ── JSON panel ── */
+.jsonPanel {
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.jsonHeader {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.jsonHeaderTitle {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.jsonBody {
+  padding: 14px 16px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.jsonKey { color: #9cdcfe; }
+.jsonString { color: #ce9178; }
+.jsonNumber { color: #b5cea8; }
+
+body[data-vscode-theme-kind="vscode-light"] .jsonKey { color: #0451a5; }
+body[data-vscode-theme-kind="vscode-light"] .jsonString { color: #a31515; }
+body[data-vscode-theme-kind="vscode-light"] .jsonNumber { color: #098658; }
+
+/* ── Save bar ── */
+.saveBar {
+  position: sticky;
+  bottom: 0;
+  background: var(--vscode-sideBar-background);
+  border-top: 1px solid var(--vscode-panel-border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.saveMsg {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  flex: 1;
+}
+
+.saveMsgDirty {
+  color: #cca700;
+}
+
+.saveMsgSaved {
+  color: #4ec9a0;
+}
+
+.saveMsgError {
+  color: var(--vscode-errorForeground);
+}
+
+/* ── Field hint ── */
+.fieldHint {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 2px;
+}
+
+/* ── Create mode layout ── */
+.createForm {
+  max-width: 600px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.createTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  margin-bottom: 8px;
+}
+
+/* Loading state */
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--vscode-descriptionForeground);
+}

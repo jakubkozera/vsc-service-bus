@@ -1,0 +1,15 @@
+.vscode/**
+src/**
+webviews/src/**
+webviews/node_modules/**
+webviews/package*.json
+webviews/tsconfig*.json
+webviews/vite.config.*
+**/*.map
+**/*.ts
+node_modules/**
+!node_modules/@azure/**
+!node_modules/uuid/**
+.gitignore
+esbuild.config.js
+tsconfig.json

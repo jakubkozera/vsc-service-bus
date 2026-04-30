@@ -1,0 +1,54 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--vscode-foreground);
+}
+
+.toggle {
+    display: flex;
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.button {
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: none;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-family: var(--vscode-font-family);
+    font-size: 12px;
+    transition: background 0.15s;
+}
+
+.button:not(:last-child) {
+    border-right: 1px solid var(--vscode-input-border);
+}
+
+.button:hover:not(:disabled) {
+    background: var(--vscode-list-hoverBackground);
+}
+
+.active {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+.active:hover:not(:disabled) {
+    background: var(--vscode-button-hoverBackground);
+}
+
+.disabled {
+    opacity: 0.5;
+}
+
+.disabled .button {
+    cursor: not-allowed;
+}

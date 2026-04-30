@@ -1,0 +1,84 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  gap: 6px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+.small {
+  padding: 2px 8px;
+  font-size: 11px;
+  min-height: auto;
+  font-weight: 400;
+}
+
+.medium {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.large {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+/* Variants */
+.primary {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.primary:hover:not(:disabled) {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.secondary {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-input-border);
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.danger {
+  background-color: var(--vscode-errorForeground);
+  color: var(--vscode-editor-background);
+}
+
+.danger:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.icon {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 8px;
+}
+
+.icon-clean {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 8px;
+  background: none;
+  color: var(--vscode-foreground);
+}
+
+.icon-clean:hover:not(:disabled) {
+  background-color: var(--vscode-toolbar-hoverBackground);
+}
