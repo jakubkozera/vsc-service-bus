@@ -20,6 +20,7 @@ vi.mock('@tabler/icons-react', () => ({
   IconSkull: (props: any) => <svg data-testid="icon-skull" {...props} />,
   IconChevronLeft: (props: any) => <svg data-testid="icon-chevron-left" {...props} />,
   IconChevronRight: (props: any) => <svg data-testid="icon-chevron-right" {...props} />,
+  IconLoader2: (props: any) => <svg data-testid="icon-loader2" {...props} />,
 }));
 
 // Mock messaging hook
@@ -87,6 +88,23 @@ describe('Messages App', () => {
   it('sends webviewReady on mount', () => {
     render(<App />);
     expect(mockPostMessage).toHaveBeenCalledWith({ command: 'webviewReady' });
+  });
+
+  it('shows spinner icon during fetch', () => {
+    render(<App />);
+    sendInit(initData);
+    sendMessages([sampleMsg]);
+    
+    // Initially should show download icon
+    expect(screen.getByTestId('icon-download')).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-loader2')).not.toBeInTheDocument();
+
+    // Click fetch
+    fireEvent.click(screen.getByTitle('Fetch messages'));
+    
+    // Should show spinner
+    expect(screen.getByTestId('icon-loader2')).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-download')).not.toBeInTheDocument();
   });
 
   describe('Detail panel actions', () => {

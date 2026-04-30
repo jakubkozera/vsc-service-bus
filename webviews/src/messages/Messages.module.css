@@ -9,19 +9,13 @@
 
 /* ── Toolbar ── */
 .toolbar {
-  padding: 10px 16px;
+  padding: 12px 16px;
   background: var(--vscode-sideBar-background);
   border-bottom: 1px solid var(--vscode-panel-border);
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.toolbarRow {
-  display: flex;
   gap: 8px;
   align-items: flex-end;
+  flex-shrink: 0;
 }
 
 .toolbarGroup {
@@ -467,18 +461,50 @@
   overflow: auto;
 }
 
-/* ── Pagination bar ── */
-.paginationBar {
+/* ── Footer bar ── */
+.footerBar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
+  justify-content: space-between;
   padding: 6px 16px;
   border-top: 1px solid var(--vscode-panel-border);
   background: var(--vscode-sideBar-background);
   flex-shrink: 0;
+  min-height: 40px;
 }
 
+.footerLeft,
+.footerCenter,
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footerLeft {
+  min-width: 200px;
+}
+
+.footerCenter {
+  flex: 1;
+  justify-content: center;
+}
+
+.footerRight {
+  min-width: 200px;
+  justify-content: flex-end;
+}
+
+/* ── Spinner animation ── */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Pagination bar ── */
 .pageBtn {
   display: inline-flex;
   align-items: center;
