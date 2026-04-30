@@ -1,13 +1,13 @@
 .codeViewer {
   display: flex;
-  overflow: auto;
+  overflow: visible;
   background: var(--vscode-editor-background, #1e1e1e);
   border-radius: 4px;
   font-family: var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
   font-size: 12px;
   line-height: 1.5;
   tab-size: 2;
-  height: 100%;
+  min-height: 100%;
 }
 
 .lineNumbers {
