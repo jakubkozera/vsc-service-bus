@@ -100,6 +100,27 @@ export function registerEntityCommands(
             const { runtime } = await admin.getQueue(item.nsId, item.queueName);
             host.post({ command: 'purgeDone', runtime });
           } catch (e) { showError('Cancel scheduled failed', e); host.post({ command: 'purgeCancelled' }); }
+        } else if (msg?.command === 'rename') {
+          try {
+            const newName = msg.name;
+            await withProgress(`Renaming ${item.queueName} → ${newName}…`, async () => {
+              const { properties } = await admin.getQueue(item.nsId, item.queueName);
+              const { name: _n, ...opts } = properties as any;
+              await admin.createQueue(item.nsId, newName, opts);
+              await admin.deleteQueue(item.nsId, item.queueName);
+            });
+            tree.invalidateNamespace(item.nsId);
+            const { properties: newProps, runtime: newRuntime } = await admin.getQueue(item.nsId, newName);
+            host.panel.title = `Queue: ${newName}`;
+            host.post({ command: 'init', data: { mode: 'edit', kind: 'queue', name: newName, properties: newProps, runtime: newRuntime } });
+            void vscode.window.showInformationMessage(`Renamed queue to "${newName}"`);
+          } catch (e) { showError('Rename failed', e); }
+        } else if (msg?.command === 'delete') {
+          try {
+            await withProgress(`Deleting ${item.queueName}…`, () => admin.deleteQueue(item.nsId, item.queueName));
+            tree.invalidateNamespace(item.nsId);
+            host.dispose();
+          } catch (e) { showError('Delete failed', e); }
         }
       });
     }),
@@ -123,6 +144,26 @@ export function registerEntityCommands(
         tree.invalidateNamespace(item.nsId);
       } catch (e) { showError('Delete failed', e); }
     }),
+    vscode.commands.registerCommand('serviceBusExplorer.queue.rename', async (item?: QueueItem) => {
+      if (!item) return;
+      const newName = await vscode.window.showInputBox({
+        prompt: `Rename queue "${item.queueName}" to:`,
+        value: item.queueName,
+        ignoreFocusOut: true,
+        validateInput: v => v && v.trim() && v !== item.queueName ? null : 'Enter a different name'
+      });
+      if (!newName) return;
+      try {
+        await withProgress(`Renaming ${item.queueName} → ${newName}…`, async () => {
+          const { properties } = await admin.getQueue(item.nsId, item.queueName);
+          const { name: _n, ...opts } = properties as any;
+          await admin.createQueue(item.nsId, newName, opts);
+          await admin.deleteQueue(item.nsId, item.queueName);
+        });
+        tree.invalidateNamespace(item.nsId);
+        void vscode.window.showInformationMessage(`Renamed queue to "${newName}"`);
+      } catch (e) { showError('Rename failed', e); }
+    }),
 
     // ---- Topic ----
     vscode.commands.registerCommand('serviceBusExplorer.topic.create', async (item?: TopicsFolderItem) => {
@@ -135,13 +176,37 @@ export function registerEntityCommands(
     vscode.commands.registerCommand('serviceBusExplorer.topic.open', async (item?: TopicItem) => {
       if (!item) return;
       const { properties, runtime } = await admin.getTopic(item.nsId, item.topicName);
-      entityWebview(ctx, 'sbe.topicOpen', `Topic: ${item.topicName}`,
+      const host = entityWebview(ctx, 'sbe.topicOpen', `Topic: ${item.topicName}`,
         { mode: 'edit', kind: 'topic', name: item.topicName, properties, runtime },
         async (p) => {
           await admin.updateTopic(item.nsId, p.properties);
           tree.invalidateNamespace(item.nsId);
         }
       );
+      host.onMessage(async (msg: any) => {
+        if (msg?.command === 'rename') {
+          try {
+            const newName = msg.name;
+            await withProgress(`Renaming ${item.topicName} → ${newName}…`, async () => {
+              const { properties } = await admin.getTopic(item.nsId, item.topicName);
+              const { name: _n, ...opts } = properties as any;
+              await admin.createTopic(item.nsId, newName, opts);
+              await admin.deleteTopic(item.nsId, item.topicName);
+            });
+            tree.invalidateNamespace(item.nsId);
+            const { properties: newProps, runtime: newRuntime } = await admin.getTopic(item.nsId, newName);
+            host.panel.title = `Topic: ${newName}`;
+            host.post({ command: 'init', data: { mode: 'edit', kind: 'topic', name: newName, properties: newProps, runtime: newRuntime } });
+            void vscode.window.showInformationMessage(`Renamed topic to "${newName}"`);
+          } catch (e) { showError('Rename failed', e); }
+        } else if (msg?.command === 'delete') {
+          try {
+            await withProgress(`Deleting ${item.topicName}…`, () => admin.deleteTopic(item.nsId, item.topicName));
+            tree.invalidateNamespace(item.nsId);
+            host.dispose();
+          } catch (e) { showError('Delete failed', e); }
+        }
+      });
     }),
     vscode.commands.registerCommand('serviceBusExplorer.topic.edit', async (item?: TopicItem) => {
       if (!item) return;
@@ -162,6 +227,26 @@ export function registerEntityCommands(
         await admin.deleteTopic(item.nsId, item.topicName);
         tree.invalidateNamespace(item.nsId);
       } catch (e) { showError('Delete failed', e); }
+    }),
+    vscode.commands.registerCommand('serviceBusExplorer.topic.rename', async (item?: TopicItem) => {
+      if (!item) return;
+      const newName = await vscode.window.showInputBox({
+        prompt: `Rename topic "${item.topicName}" to:`,
+        value: item.topicName,
+        ignoreFocusOut: true,
+        validateInput: v => v && v.trim() && v !== item.topicName ? null : 'Enter a different name'
+      });
+      if (!newName) return;
+      try {
+        await withProgress(`Renaming ${item.topicName} → ${newName}…`, async () => {
+          const { properties } = await admin.getTopic(item.nsId, item.topicName);
+          const { name: _n, ...opts } = properties as any;
+          await admin.createTopic(item.nsId, newName, opts);
+          await admin.deleteTopic(item.nsId, item.topicName);
+        });
+        tree.invalidateNamespace(item.nsId);
+        void vscode.window.showInformationMessage(`Renamed topic to "${newName}"`);
+      } catch (e) { showError('Rename failed', e); }
     }),
 
     // ---- Subscription ----

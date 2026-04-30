@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button, Input, Switch, Dropdown, CopyButton, DurationInput, NumberInput, Modal, LoadingOverlay } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
-import { IconEye, IconTrash, IconSend, IconArrowForwardUp } from '@tabler/icons-react';
+import { IconEye, IconTrash, IconSend, IconArrowForwardUp, IconPencil } from '@tabler/icons-react';
 import styles from './EntityEditor.module.css';
 
 // ── Types ──
@@ -117,7 +117,7 @@ export const App: React.FC = () => {
     <div className={styles.editor}>
       {purging && <LoadingOverlay isLoading={true} text="Purging messages…" />}
       <div className={styles.content}>
-        <EntityHeader init={init} props={props} />
+        <EntityHeader init={init} props={props} postMessage={postMessage} />
         {init.runtime && <StatsRow runtime={init.runtime} kind={init.kind} postMessage={postMessage} setPurging={setPurging} />}
         {init.kind === 'queue' && <QueueEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
         {init.kind === 'topic' && <TopicEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
@@ -143,29 +143,91 @@ const Tooltip: React.FC<{ label: string; children: React.ReactNode }> = ({ label
 
 // ── Entity Header ──
 
-const EntityHeader: React.FC<{ init: InitData; props: any }> = ({ init, props }) => {
+const EntityHeader: React.FC<{ init: InitData; props: any; postMessage: (msg: any) => void }> = ({ init, props, postMessage }) => {
   const status = props.status ?? 'Active';
   const isActive = status === 'Active';
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [newName, setNewName] = useState(init.name ?? '');
+
+  const handleRename = () => {
+    if (newName && newName !== init.name) {
+      postMessage({ command: 'rename', name: newName });
+      setRenameOpen(false);
+    }
+  };
+
+  const handleDelete = () => {
+    postMessage({ command: 'delete' });
+    setDeleteOpen(false);
+  };
+
   return (
-    <div className={styles.entityHeader}>
-      <div className={styles.entityIcon}>
-        <EntitySvgIcon kind={init.kind} />
-      </div>
-      <div>
-        <div className={styles.entityName}>{init.name}</div>
-        <div className={styles.entityMeta}>
-          {init.kind.charAt(0).toUpperCase() + init.kind.slice(1)}
-          {init.namespace && <>&nbsp;·&nbsp;{init.namespace}</>}
-          {init.topicName && init.kind !== 'topic' && <>&nbsp;·&nbsp;{init.topicName}</>}
+    <>
+      <div className={styles.entityHeader}>
+        <div className={styles.entityIcon}>
+          <EntitySvgIcon kind={init.kind} />
+        </div>
+        <div>
+          <div className={styles.entityName}>{init.name}</div>
+          <div className={styles.entityMeta}>
+            {init.kind.charAt(0).toUpperCase() + init.kind.slice(1)}
+            {init.namespace && <>&nbsp;·&nbsp;{init.namespace}</>}
+            {init.topicName && init.kind !== 'topic' && <>&nbsp;·&nbsp;{init.topicName}</>}
+          </div>
+        </div>
+        <div className={styles.entityActions}>
+          {init.mode === 'edit' && (init.kind === 'queue' || init.kind === 'topic') && (
+            <>
+              <Tooltip label="Rename">
+                <button className={styles.headerIconBtn} onClick={() => { setNewName(init.name ?? ''); setRenameOpen(true); }}>
+                  <IconPencil size={16} />
+                </button>
+              </Tooltip>
+              <Tooltip label="Delete">
+                <button className={`${styles.headerIconBtn} ${styles.headerIconBtnDanger}`} onClick={() => setDeleteOpen(true)}>
+                  <IconTrash size={16} />
+                </button>
+              </Tooltip>
+            </>
+          )}
+          <span className={`${styles.badgeStatus} ${isActive ? styles.badgeActive : styles.badgeDisabled}`}>
+            <span className={styles.badgeDot} />
+            {status}
+          </span>
         </div>
       </div>
-      <div className={styles.entityActions}>
-        <span className={`${styles.badgeStatus} ${isActive ? styles.badgeActive : styles.badgeDisabled}`}>
-          <span className={styles.badgeDot} />
-          {status}
-        </span>
-      </div>
-    </div>
+      <Modal
+        isOpen={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        title={`Rename ${init.kind}`}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRenameOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleRename} disabled={!newName || newName === init.name}>Rename</Button>
+          </>
+        }
+      >
+        <Input label="New name" value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus
+          onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') handleRename(); }} />
+      </Modal>
+      <Modal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title={`Delete ${init.kind}`}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDelete}>Delete</Button>
+          </>
+        }
+      >
+        <p>Are you sure you want to delete <strong>{init.name}</strong>?</p>
+        <p style={{ color: 'var(--vscode-errorForeground)', fontSize: 12 }}>This action cannot be undone.</p>
+      </Modal>
+    </>
   );
 };
 

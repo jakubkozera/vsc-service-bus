@@ -105,6 +105,12 @@
         "icon": "$(edit)"
       },
       {
+        "command": "serviceBusExplorer.queue.rename",
+        "title": "Rename Queue",
+        "category": "Service Bus",
+        "icon": "$(edit)"
+      },
+      {
         "command": "serviceBusExplorer.queue.delete",
         "title": "Delete Queue",
         "category": "Service Bus",
@@ -135,6 +141,12 @@
       {
         "command": "serviceBusExplorer.topic.edit",
         "title": "Edit Topic",
+        "category": "Service Bus",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "serviceBusExplorer.topic.rename",
+        "title": "Rename Topic",
         "category": "Service Bus",
         "icon": "$(edit)"
       },
@@ -369,9 +381,14 @@
           "group": "2_io@1"
         },
         {
-          "command": "serviceBusExplorer.queue.delete",
+          "command": "serviceBusExplorer.queue.rename",
           "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
           "group": "9_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.queue.delete",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "9_modify@2"
         },
         {
           "command": "serviceBusExplorer.listener.start",
@@ -416,9 +433,14 @@
           "group": "2_io@1"
         },
         {
-          "command": "serviceBusExplorer.topic.delete",
+          "command": "serviceBusExplorer.topic.rename",
           "when": "view == serviceBusExplorer.namespacesView && viewItem == topic",
           "group": "9_modify@1"
+        },
+        {
+          "command": "serviceBusExplorer.topic.delete",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topic",
+          "group": "9_modify@2"
         },
         {
           "command": "serviceBusExplorer.testSender.open",

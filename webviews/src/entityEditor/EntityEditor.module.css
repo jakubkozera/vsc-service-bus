@@ -103,6 +103,33 @@
   align-items: center;
 }
 
+/* Header icon buttons (delete, rename) */
+.headerIconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+  transition: all 0.15s ease;
+}
+
+.headerIconBtn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+  border-color: var(--vscode-input-border);
+}
+
+.headerIconBtnDanger:hover {
+  background: color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent);
+  color: var(--vscode-errorForeground);
+  border-color: color-mix(in srgb, var(--vscode-errorForeground) 40%, transparent);
+}
+
 /* Status badge */
 .badgeStatus {
   display: inline-flex;
