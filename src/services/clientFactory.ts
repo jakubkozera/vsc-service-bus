@@ -1,8 +1,9 @@
 import { ServiceBusClient, ServiceBusAdministrationClient } from '@azure/service-bus';
-import { DefaultAzureCredential, InteractiveBrowserCredential, TokenCredential } from '@azure/identity';
+import type { TokenCredential } from '@azure/core-auth';
 import { NamespaceMetadata } from '../models/namespace';
 import { NamespaceStore } from '../state/namespaceStore';
 import { Logger } from '../logging/logger';
+import { VsCodeMicrosoftCredential } from '../auth/vscodeMicrosoftCredential';
 
 interface CachedClients {
   admin: ServiceBusAdministrationClient;
@@ -52,16 +53,10 @@ export class ClientFactory {
   }
 
   private async createCredential(meta: NamespaceMetadata): Promise<TokenCredential> {
-    try {
-      const tenantId = meta.tenantId ?? 'organizations';
-      return new InteractiveBrowserCredential({
-        tenantId,
-        redirectUri: 'http://localhost'
-      });
-    } catch (e) {
-      Logger.warn('Falling back to DefaultAzureCredential', String(e));
-      return new DefaultAzureCredential();
-    }
+    // Use VS Code's built-in 'microsoft' authentication provider so the
+    // session (and refresh token) is persisted in the OS keychain and
+    // survives VS Code restarts. This avoids re-prompting on every restart.
+    return new VsCodeMicrosoftCredential(meta.tenantId);
   }
 
   async invalidate(nsId: string): Promise<void> {

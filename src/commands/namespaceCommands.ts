@@ -3,6 +3,7 @@ import { NamespaceStore } from '../state/namespaceStore';
 import { ClientFactory } from '../services/clientFactory';
 import { AdminService } from '../services/adminService';
 import { parseConnectionString } from '../auth/connectionString';
+import { VsCodeMicrosoftCredential } from '../auth/vscodeMicrosoftCredential';
 import { showError, withProgress } from '../utils/errors';
 import { NamespaceItem } from '../providers/treeItems';
 
@@ -66,13 +67,25 @@ export function registerNamespaceCommands(
           ignoreFocusOut: true
         });
         if (!displayName) return;
-        await store.add({
+        const created = await store.add({
           displayName,
           fqdn,
           authMode: 'aad',
           tenantId: tenantId || undefined
         }, '');
-        void vscode.window.showInformationMessage(`Added namespace: ${displayName}`);
+        // Trigger interactive sign-in immediately so the user is not
+        // surprised by an auth prompt later when opening a queue, and so
+        // the VS Code 'microsoft' provider persists the session for reuse
+        // across restarts.
+        try {
+          await withProgress(`Signing in to ${created.displayName}…`, async () => {
+            const cred = new VsCodeMicrosoftCredential(created.tenantId);
+            await cred.signIn();
+          });
+          void vscode.window.showInformationMessage(`Added namespace: ${displayName}`);
+        } catch (e) {
+          showError('Sign-in failed (namespace was added — you can retry from the tree)', e);
+        }
       }
     }),
 
