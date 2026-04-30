@@ -217,6 +217,41 @@ export function registerMessageCommands(
     }),
 
     vscode.commands.registerCommand('serviceBusExplorer.messages.viewDeadLetter', async (item: any) =>
-      vscode.commands.executeCommand('serviceBusExplorer.messages.view', item))
+      vscode.commands.executeCommand('serviceBusExplorer.messages.view', item)),
+
+    vscode.commands.registerCommand('serviceBusExplorer.messages.viewScheduled', async (item?: QueueItem) => {
+      if (!item) return;
+      const host = new WebviewHost(ctx, {
+        viewType: 'sbe.messages',
+        title: `Scheduled: ${item.queueName}`,
+        bundleId: 'messages',
+        initData: { source: { queue: item.queueName }, isDLQ: false, isScheduled: true, peekDefault: peekDefault() }
+      });
+
+      host.onMessage(async (msg: any) => {
+        try {
+          if (msg.command === 'peek') {
+            Logger.info(`[Messages] Peek scheduled ${msg.count} from ${item.queueName}`);
+            const list = await messages.peek(item.nsId, { queue: item.queueName }, msg.count ?? 500);
+            const scheduled = list.filter(m => m.state === 'scheduled');
+            Logger.info(`[Messages] Peek returned ${scheduled.length} scheduled messages`);
+            host.post({ command: 'messages', mode: 'peek', items: scheduled.map(serializeMessage) });
+          } else if (msg.command === 'cancelScheduled') {
+            // Cancel specific scheduled messages by sequence number
+            const seqs = (msg.sequenceNumbers as string[]).map(s => BigInt(s));
+            if (seqs.length > 0) {
+              const sender = await (send as any).sender?.(item.nsId, { queue: item.queueName });
+              if (sender) { await sender.cancelScheduledMessages(seqs as any); await sender.close(); }
+              else { await send.cancelScheduled(item.nsId, { queue: item.queueName }, seqs); }
+            }
+            host.post({ command: 'cancelScheduledDone', count: seqs.length });
+            tree.invalidateNamespace(item.nsId);
+          }
+        } catch (e) {
+          showError('Operation failed', e);
+          host.post({ command: 'error', error: (e as Error).message });
+        }
+      });
+    })
   );
 }

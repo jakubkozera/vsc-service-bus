@@ -163,7 +163,7 @@ const EntityHeader: React.FC<{ init: InitData; props: any }> = ({ init, props })
 // ── Stats Row ──
 
 const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) => void }> = ({ runtime, kind, postMessage }) => {
-  const [purgeTarget, setPurgeTarget] = useState<'active' | 'deadLetter' | null>(null);
+  const [purgeTarget, setPurgeTarget] = useState<'active' | 'deadLetter' | 'scheduled' | null>(null);
 
   const cards = useMemo(() => {
     if (kind === 'topic') {
@@ -177,16 +177,17 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
       { label: 'Total', value: runtime.totalMessageCount ?? runtime.activeMessageCount ?? 0, sub: 'messages', highlighted: true },
       { label: 'Active', value: runtime.activeMessageCount ?? 0, sub: 'messages', type: 'active' as const },
       { label: 'Dead-letter', value: runtime.deadLetterMessageCount ?? 0, sub: 'messages', type: 'deadLetter' as const },
-      { label: 'Scheduled', value: runtime.scheduledMessageCount ?? 0, sub: 'messages' },
+      { label: 'Scheduled', value: runtime.scheduledMessageCount ?? 0, sub: 'messages', type: 'scheduled' as const },
       { label: 'Size', value: formatSize(runtime.sizeInBytes ?? 0), sub: `${(runtime.sizeInBytes ?? 0).toLocaleString()} bytes`, isText: true },
     ];
   }, [runtime, kind]);
 
-  const confirmPurge = (target: 'active' | 'deadLetter') => setPurgeTarget(target);
+  const confirmPurge = (target: 'active' | 'deadLetter' | 'scheduled') => setPurgeTarget(target);
 
   const doPurge = () => {
     if (!purgeTarget) return;
-    postMessage({ command: purgeTarget === 'active' ? 'purgeActive' : 'purgeDeadLetter' });
+    const cmd = purgeTarget === 'active' ? 'purgeActive' : purgeTarget === 'deadLetter' ? 'purgeDeadLetter' : 'purgeScheduled';
+    postMessage({ command: cmd });
     setPurgeTarget(null);
   };
 
@@ -205,13 +206,13 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
               {'type' in c && (
                 <div className={styles.statActions}>
                   <Tooltip label="View messages">
-                    <button className={styles.statIconBtn} onClick={() => postMessage({ command: c.type === 'active' ? 'viewMessages' : 'viewDeadLetter' })}>
+                    <button className={styles.statIconBtn} onClick={() => postMessage({ command: c.type === 'active' ? 'viewMessages' : c.type === 'deadLetter' ? 'viewDeadLetter' : 'viewScheduled' })}>
                       <IconEye size={15} />
                     </button>
                   </Tooltip>
-                  {c.type === 'active' && (
-                    <Tooltip label="Send message">
-                      <button className={styles.statIconBtn} onClick={() => postMessage({ command: 'sendMessage' })}>
+                  {(c.type === 'active' || c.type === 'scheduled') && (
+                    <Tooltip label={c.type === 'scheduled' ? 'Schedule message' : 'Send message'}>
+                      <button className={styles.statIconBtn} onClick={() => postMessage({ command: c.type === 'scheduled' ? 'sendScheduled' : 'sendMessage' })}>
                         <IconSend size={15} />
                       </button>
                     </Tooltip>
@@ -223,7 +224,7 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
                       </button>
                     </Tooltip>
                   )}
-                  <Tooltip label="Purge messages">
+                  <Tooltip label={c.type === 'scheduled' ? 'Cancel scheduled' : 'Purge messages'}>
                     <button className={styles.statIconBtn} onClick={() => confirmPurge(c.type!)}>
                       <IconTrash size={15} />
                     </button>
@@ -246,7 +247,7 @@ const StatsRow: React.FC<{ runtime: any; kind: string; postMessage: (msg: any) =
           </>
         }
       >
-        <p>Are you sure you want to purge all <strong>{purgeTarget === 'active' ? 'active' : 'dead-letter'}</strong> messages?</p>
+        <p>Are you sure you want to {purgeTarget === 'scheduled' ? 'cancel all' : 'purge all'} <strong>{purgeTarget === 'active' ? 'active' : purgeTarget === 'deadLetter' ? 'dead-letter' : 'scheduled'}</strong> messages?</p>
         <p style={{ color: 'var(--vscode-errorForeground)', fontSize: 12 }}>This action cannot be undone.</p>
       </Modal>
     </>

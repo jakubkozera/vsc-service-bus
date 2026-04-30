@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { AdminService } from '../services/adminService';
+import { MessagesService } from '../services/messagesService';
 import { NamespacesTreeProvider } from '../providers/namespacesTreeProvider';
 import { QueueItem, QueuesFolderItem, TopicItem, TopicsFolderItem, SubscriptionItem, RuleItem, NamespaceItem, DeadLetterItem } from '../providers/treeItems';
 import { WebviewHost } from '../webviews/webviewHost';
@@ -31,7 +32,8 @@ export function registerEntityCommands(
   admin: AdminService,
   tree: NamespacesTreeProvider,
   purge: PurgeService,
-  send: SendService
+  send: SendService,
+  messages: MessagesService
 ): void {
   // ---- Queue ----
   ctx.subscriptions.push(
@@ -61,7 +63,11 @@ export function registerEntityCommands(
         } else if (msg?.command === 'viewTransferDeadLetter') {
           const tdlqItem = new DeadLetterItem(item.nsId, { queue: item.queueName }, item.transferDlq, true);
           vscode.commands.executeCommand('serviceBusExplorer.messages.view', tdlqItem);
+        } else if (msg?.command === 'viewScheduled') {
+          vscode.commands.executeCommand('serviceBusExplorer.messages.viewScheduled', item);
         } else if (msg?.command === 'sendMessage') {
+          vscode.commands.executeCommand('serviceBusExplorer.queue.send', item);
+        } else if (msg?.command === 'sendScheduled') {
           vscode.commands.executeCommand('serviceBusExplorer.queue.send', item);
         } else if (msg?.command === 'purgeActive') {
           const ok = await vscode.window.showWarningMessage(`Purge all active messages from "${item.queueName}"?`, { modal: true }, 'Purge');
@@ -79,6 +85,20 @@ export function registerEntityCommands(
             tree.invalidateNamespace(item.nsId);
             host.post({ command: 'purgeDone' });
           } catch (e) { showError('Purge failed', e); host.post({ command: 'purgeCancelled' }); }
+        } else if (msg?.command === 'purgeScheduled') {
+          const ok = await vscode.window.showWarningMessage(`Cancel all scheduled messages from "${item.queueName}"?`, { modal: true }, 'Cancel All');
+          if (ok !== 'Cancel All') { host.post({ command: 'purgeCancelled' }); return; }
+          try {
+            await withProgress('Cancelling scheduled…', async () => {
+              const peeked = await messages.peek(item.nsId, { queue: item.queueName }, 500);
+              const scheduledSeqs = peeked.filter(m => m.state === 'scheduled' && m.sequenceNumber).map(m => m.sequenceNumber!);
+              if (scheduledSeqs.length > 0) {
+                await send.cancelScheduled(item.nsId, { queue: item.queueName }, scheduledSeqs);
+              }
+            });
+            tree.invalidateNamespace(item.nsId);
+            host.post({ command: 'purgeDone' });
+          } catch (e) { showError('Cancel scheduled failed', e); host.post({ command: 'purgeCancelled' }); }
         }
       });
     }),
