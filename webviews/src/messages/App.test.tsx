@@ -20,6 +20,7 @@ vi.mock('@tabler/icons-react', () => ({
   IconSkull: (props: any) => <svg data-testid="icon-skull" {...props} />,
   IconChevronLeft: (props: any) => <svg data-testid="icon-chevron-left" {...props} />,
   IconChevronRight: (props: any) => <svg data-testid="icon-chevron-right" {...props} />,
+  IconFilter: (props: any) => <svg data-testid="icon-filter" {...props} />,
 }));
 
 // Mock messaging hook

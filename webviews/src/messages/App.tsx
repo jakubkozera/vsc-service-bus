@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Dropdown, Input, Modal, NumberInput, CodeViewer } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
-import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowBackUp, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowBackUp, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull, IconChevronLeft, IconChevronRight, IconFilter } from '@tabler/icons-react';
 import styles from './Messages.module.css';
 
 interface Msg {
@@ -34,7 +34,8 @@ export const App: React.FC = () => {
   const [items, setItems] = useState<Msg[]>([]);
   const [selected, setSelected] = useState<Msg | null>(null);
   const [selectedSeqs, setSelectedSeqs] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState('');
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dlqReasonOpen, setDlqReasonOpen] = useState<Msg | null>(null);
   const [dlqReason, setDlqReason] = useState({ reason: '', description: '' });
@@ -104,9 +105,24 @@ export const App: React.FC = () => {
     return unsub;
   }, [postMessage, subscribe]);
 
-  const filtered = useMemo(() => items.filter((m) =>
-    !filter || (m.messageId ?? '').includes(filter) || (m.subject ?? '').includes(filter) || (m.body ?? '').includes(filter)
-  ), [items, filter]);
+  const filtered = useMemo(() => items.filter((m) => {
+    for (const [col, val] of Object.entries(columnFilters)) {
+      if (!val) continue;
+      if (col === 'sequenceNumber') {
+        if (!m.sequenceNumber.includes(val)) return false;
+      } else if (col === 'messageId') {
+        if (!(m.messageId ?? '').toLowerCase().includes(val.toLowerCase())) return false;
+      } else if (col === 'subject') {
+        if (!(m.subject ?? '').toLowerCase().includes(val.toLowerCase())) return false;
+      } else if (col === 'enqueuedTimeUtc') {
+        if (!(m.enqueuedTimeUtc ?? '').includes(val)) return false;
+      } else if (col === 'deliveryCount') {
+        const num = Number(val);
+        if (!isNaN(num) && (m.deliveryCount ?? 0) !== num) return false;
+      }
+    }
+    return true;
+  }), [items, columnFilters]);
 
   // Pagination based on server-side total message count
   const totalPages = Math.max(1, Math.ceil(totalMessageCount / count));
@@ -208,6 +224,19 @@ export const App: React.FC = () => {
   // Track last clicked index for Shift+Click range selection
   const lastClickedIdx = useRef<number | null>(null);
 
+  // Close filter popup on click outside
+  useEffect(() => {
+    if (!activeFilter) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(`.${styles.filterPopup}`) && !target.closest(`.${styles.filterBtn}`)) {
+        setActiveFilter(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [activeFilter]);
+
   const handleRowClick = (m: Msg, idx: number, e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey) {
       // Ctrl+Click: toggle individual checkbox
@@ -248,7 +277,6 @@ export const App: React.FC = () => {
             <Dropdown options={MODE_OPTIONS} value={mode} onChange={(v) => setMode(v as Mode)} label="Mode" />
           </div>
           <NumberInput label="Count" value={String(count)} onChange={(e) => setCount(Number(e.target.value) || 1)} style={{ width: 150 }} />
-          <Input label="Filter" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="search…" style={{ width: 160 }} />
           <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={fetchMessages} disabled={loading} title="Fetch messages">
             {loading ? <div className={styles.loader} /> : <IconDownload size={16} stroke={1.8} />}
             Fetch
@@ -336,11 +364,66 @@ export const App: React.FC = () => {
                         setSelectedSeqs(next);
                       }} />
                   </th>
-                  <th className={styles.th}>Seq</th>
-                  <th className={styles.th}>MessageId</th>
-                  <th className={styles.th}>Subject</th>
-                  <th className={styles.th}>Enqueued</th>
-                  <th className={styles.th}>DC</th>
+                  <th className={styles.th}>
+                    <span className={styles.thContent}>
+                      Seq
+                      <button className={`${styles.filterBtn} ${columnFilters.sequenceNumber ? styles.filterBtnActive : ''}`} onClick={(e) => { e.stopPropagation(); setActiveFilter(activeFilter === 'sequenceNumber' ? null : 'sequenceNumber'); }} title="Filter"><IconFilter size={12} stroke={2} /></button>
+                    </span>
+                    {activeFilter === 'sequenceNumber' && (
+                      <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
+                        <input className={styles.filterInput} type="text" placeholder="Contains…" autoFocus value={columnFilters.sequenceNumber ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, sequenceNumber: e.target.value }))} />
+                        <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.sequenceNumber; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
+                      </div>
+                    )}
+                  </th>
+                  <th className={styles.th}>
+                    <span className={styles.thContent}>
+                      MessageId
+                      <button className={`${styles.filterBtn} ${columnFilters.messageId ? styles.filterBtnActive : ''}`} onClick={(e) => { e.stopPropagation(); setActiveFilter(activeFilter === 'messageId' ? null : 'messageId'); }} title="Filter"><IconFilter size={12} stroke={2} /></button>
+                    </span>
+                    {activeFilter === 'messageId' && (
+                      <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
+                        <input className={styles.filterInput} type="text" placeholder="Contains…" autoFocus value={columnFilters.messageId ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, messageId: e.target.value }))} />
+                        <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.messageId; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
+                      </div>
+                    )}
+                  </th>
+                  <th className={styles.th}>
+                    <span className={styles.thContent}>
+                      Subject
+                      <button className={`${styles.filterBtn} ${columnFilters.subject ? styles.filterBtnActive : ''}`} onClick={(e) => { e.stopPropagation(); setActiveFilter(activeFilter === 'subject' ? null : 'subject'); }} title="Filter"><IconFilter size={12} stroke={2} /></button>
+                    </span>
+                    {activeFilter === 'subject' && (
+                      <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
+                        <input className={styles.filterInput} type="text" placeholder="Contains…" autoFocus value={columnFilters.subject ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, subject: e.target.value }))} />
+                        <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.subject; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
+                      </div>
+                    )}
+                  </th>
+                  <th className={styles.th}>
+                    <span className={styles.thContent}>
+                      Enqueued
+                      <button className={`${styles.filterBtn} ${columnFilters.enqueuedTimeUtc ? styles.filterBtnActive : ''}`} onClick={(e) => { e.stopPropagation(); setActiveFilter(activeFilter === 'enqueuedTimeUtc' ? null : 'enqueuedTimeUtc'); }} title="Filter"><IconFilter size={12} stroke={2} /></button>
+                    </span>
+                    {activeFilter === 'enqueuedTimeUtc' && (
+                      <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
+                        <input className={styles.filterInput} type="text" placeholder="e.g. 2024-01" autoFocus value={columnFilters.enqueuedTimeUtc ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, enqueuedTimeUtc: e.target.value }))} />
+                        <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.enqueuedTimeUtc; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
+                      </div>
+                    )}
+                  </th>
+                  <th className={styles.th}>
+                    <span className={styles.thContent}>
+                      DC
+                      <button className={`${styles.filterBtn} ${columnFilters.deliveryCount ? styles.filterBtnActive : ''}`} onClick={(e) => { e.stopPropagation(); setActiveFilter(activeFilter === 'deliveryCount' ? null : 'deliveryCount'); }} title="Filter"><IconFilter size={12} stroke={2} /></button>
+                    </span>
+                    {activeFilter === 'deliveryCount' && (
+                      <div className={styles.filterPopup} onClick={(e) => e.stopPropagation()}>
+                        <input className={styles.filterInput} type="number" placeholder="Equals…" autoFocus value={columnFilters.deliveryCount ?? ''} onChange={(e) => setColumnFilters(p => ({ ...p, deliveryCount: e.target.value }))} />
+                        <button className={styles.filterClear} onClick={() => { setColumnFilters(p => { const n = { ...p }; delete n.deliveryCount; return n; }); setActiveFilter(null); }}><IconX size={12} /></button>
+                      </div>
+                    )}
+                  </th>
                   {isPeekLock && <th className={styles.th}>Actions</th>}
                 </tr>
               </thead>

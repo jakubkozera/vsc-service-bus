@@ -182,6 +182,92 @@
   letter-spacing: 0.04em;
   color: var(--vscode-descriptionForeground);
   white-space: nowrap;
+  position: relative;
+}
+
+.thContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Column filter button ── */
+.filterBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+
+.th:hover .filterBtn,
+.filterBtn:focus,
+.filterBtnActive {
+  opacity: 1;
+}
+
+.filterBtnActive {
+  color: var(--vscode-button-background);
+}
+
+.filterBtn:hover {
+  background: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+  color: var(--vscode-foreground);
+}
+
+/* ── Column filter popup ── */
+.filterPopup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  min-width: 150px;
+}
+
+.filterInput {
+  flex: 1;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  color: var(--vscode-input-foreground);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  outline: none;
+  font-family: inherit;
+}
+
+.filterInput:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.filterClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+}
+
+.filterClear:hover {
+  color: var(--vscode-errorForeground);
 }
 
 .tr {
@@ -497,12 +583,13 @@
 
 /* ── Custom loader ── */
 .loader {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border: 2px solid var(--vscode-button-foreground);
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
