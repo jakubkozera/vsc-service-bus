@@ -179,6 +179,13 @@ const EntityHeader: React.FC<{ init: InitData; props: any; postMessage: (msg: an
         <div className={styles.entityActions}>
           {init.mode === 'edit' && (init.kind === 'queue' || init.kind === 'topic') && (
             <>
+              {init.kind === 'topic' && (
+                <Tooltip label="Send Message">
+                  <button className={styles.headerIconBtn} onClick={() => postMessage({ command: 'sendMessage' })}>
+                    <IconSend size={16} />
+                  </button>
+                </Tooltip>
+              )}
               <Tooltip label="Rename">
                 <button className={styles.headerIconBtn} onClick={() => { setNewName(init.name ?? ''); setRenameOpen(true); }}>
                   <IconPencil size={16} />

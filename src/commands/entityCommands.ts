@@ -184,7 +184,9 @@ export function registerEntityCommands(
         }
       );
       host.onMessage(async (msg: any) => {
-        if (msg?.command === 'rename') {
+        if (msg?.command === 'sendMessage') {
+          vscode.commands.executeCommand('serviceBusExplorer.topic.send', item);
+        } else if (msg?.command === 'rename') {
           try {
             const newName = msg.name;
             await withProgress(`Renaming ${item.topicName} → ${newName}…`, async () => {
@@ -263,13 +265,45 @@ export function registerEntityCommands(
     vscode.commands.registerCommand('serviceBusExplorer.subscription.edit', async (item?: SubscriptionItem) => {
       if (!item) return;
       const { properties, runtime } = await admin.getSubscription(item.nsId, item.topicName, item.subscriptionName);
-      entityWebview(ctx, 'sbe.subEdit', `Subscription: ${item.subscriptionName}`,
+      const host = entityWebview(ctx, 'sbe.subEdit', `Subscription: ${item.subscriptionName}`,
         { mode: 'edit', kind: 'subscription', topicName: item.topicName, name: item.subscriptionName, properties, runtime },
         async (p) => {
           await admin.updateSubscription(item.nsId, p.properties);
           tree.invalidateNamespace(item.nsId);
         }
       );
+      host.onMessage(async (msg: any) => {
+        if (msg?.command === 'viewMessages') {
+          vscode.commands.executeCommand('serviceBusExplorer.messages.view', item);
+        } else if (msg?.command === 'viewDeadLetter') {
+          const dlqItem = new DeadLetterItem(item.nsId, { topic: item.topicName, subscription: item.subscriptionName }, item.dlq);
+          vscode.commands.executeCommand('serviceBusExplorer.messages.view', dlqItem);
+        } else if (msg?.command === 'viewTransferDeadLetter') {
+          const tdlqItem = new DeadLetterItem(item.nsId, { topic: item.topicName, subscription: item.subscriptionName }, item.transferDlq, true);
+          vscode.commands.executeCommand('serviceBusExplorer.messages.view', tdlqItem);
+        } else if (msg?.command === 'viewScheduled') {
+          // Scheduled messages live on the topic (not on individual subscriptions)
+          vscode.commands.executeCommand('serviceBusExplorer.messages.viewScheduled', item);
+        } else if (msg?.command === 'sendMessage' || msg?.command === 'sendScheduled') {
+          // Sending always targets the parent topic
+          const topicItem = new TopicItem(item.nsId, item.topicName, 0);
+          vscode.commands.executeCommand('serviceBusExplorer.topic.send', topicItem);
+        } else if (msg?.command === 'purgeActive') {
+          try {
+            await withProgress('Purging…', () => purge.purge(item.nsId, { topic: item.topicName, subscription: item.subscriptionName }, 'receiveAndDelete'));
+            tree.invalidateNamespace(item.nsId);
+            const { runtime } = await admin.getSubscription(item.nsId, item.topicName, item.subscriptionName);
+            host.post({ command: 'purgeDone', runtime });
+          } catch (e) { showError('Purge failed', e); host.post({ command: 'purgeCancelled' }); }
+        } else if (msg?.command === 'purgeDeadLetter') {
+          try {
+            await withProgress('Purging DLQ…', () => purge.purge(item.nsId, { topic: item.topicName, subscription: item.subscriptionName, subQueue: 'deadLetter' } as any, 'receiveAndDelete'));
+            tree.invalidateNamespace(item.nsId);
+            const { runtime } = await admin.getSubscription(item.nsId, item.topicName, item.subscriptionName);
+            host.post({ command: 'purgeDone', runtime });
+          } catch (e) { showError('Purge failed', e); host.post({ command: 'purgeCancelled' }); }
+        }
+      });
     }),
     vscode.commands.registerCommand('serviceBusExplorer.subscription.delete', async (item?: SubscriptionItem) => {
       if (!item) return;

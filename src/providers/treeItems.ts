@@ -103,6 +103,7 @@ export class SubscriptionItem extends vscode.TreeItem {
     this.contextValue = 'subscription';
     this.id = `ns:${nsId}:t:${topicName}:s:${subscriptionName}`;
     this.description = `(${active}, ${dlq}, ${transferDlq})`;
+    this.iconPath = new vscode.ThemeIcon('rss');
     this.tooltip = new vscode.MarkdownString(
       `**${subscriptionName}**\n\nTopic: \`${topicName}\`\n\n- Active: ${active}\n- DLQ: ${dlq}\n- Transfer DLQ: ${transferDlq}`
     );

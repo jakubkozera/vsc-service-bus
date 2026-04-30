@@ -32,14 +32,27 @@ function escapeHtml(str: string): string {
 }
 
 function colorizeJson(json: string): string {
-  return json
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/("(?:[^"\\]|\\.)*")\s*:/g, `<span class="${styles.key}">$1</span>:`)
-    .replace(/:\s*("(?:[^"\\]|\\.)*")/g, `: <span class="${styles.string}">$1</span>`)
-    .replace(/:\s*(true|false|null)\b/g, `: <span class="${styles.keyword}">$1</span>`)
-    .replace(/:\s*(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b/g, `: <span class="${styles.number}">$1</span>`)
-    // Standalone strings in arrays
-    .replace(/(?<=[\[,]\s*)("(?:[^"\\]|\\.)*")(?=\s*[,\]])/g, `<span class="${styles.string}">$1</span>`);
+  const escaped = json
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Single-pass tokenization. Strings are matched as a top-level alternative so
+  // that the regex engine never re-enters string contents — preventing things
+  // like timestamps "T12:22:25.882Z" being mis-tokenized as numbers.
+  return escaped.replace(
+    /("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+    (_match, str, trailingColon, kw, num) => {
+      if (str !== undefined) {
+        if (trailingColon) {
+          // Key (string immediately followed by colon)
+          return `<span class="${styles.key}">${str}</span>${trailingColon}`;
+        }
+        return `<span class="${styles.string}">${str}</span>`;
+      }
+      if (kw !== undefined) return `<span class="${styles.keyword}">${kw}</span>`;
+      if (num !== undefined) return `<span class="${styles.number}">${num}</span>`;
+      return _match;
+    }
+  );
 }
 
 function colorizeXml(xml: string): string {

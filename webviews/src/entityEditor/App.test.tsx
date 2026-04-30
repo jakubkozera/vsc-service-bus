@@ -303,6 +303,78 @@ describe('EntityEditor App', () => {
     });
   });
 
+  describe('Subscription Tile Actions', () => {
+    const subDataWithRuntime = {
+      mode: 'edit' as const,
+      kind: 'subscription' as const,
+      name: 'processor',
+      topicName: 'events',
+      properties: { status: 'Active' },
+      runtime: {
+        activeMessageCount: 3,
+        totalMessageCount: 3,
+        deadLetterMessageCount: 1,
+        scheduledMessageCount: 0,
+        sizeInBytes: 0,
+      },
+    };
+
+    function findActionButton(cardLabel: string, tooltipLabel: string): HTMLElement {
+      // Find the statLabel element containing the card label (specific to stat cards)
+      const labelEls = screen.getAllByText(cardLabel);
+      const labelEl = labelEls.find(el => el.className.includes('statLabel'));
+      if (!labelEl) throw new Error(`No stat card label found for "${cardLabel}"`);
+      const card = labelEl.parentElement;
+      if (!card) throw new Error(`No card parent for ${cardLabel}`);
+      const buttons = card.querySelectorAll('button');
+      for (const btn of Array.from(buttons)) {
+        const tip = btn.parentElement?.querySelector('div.tooltip');
+        if (tip?.textContent === tooltipLabel) return btn as HTMLElement;
+      }
+      throw new Error(`No "${tooltipLabel}" button in "${cardLabel}" card`);
+    }
+
+    it('posts viewMessages when eye icon clicked on Active tile', () => {
+      render(<App />);
+      sendInit(subDataWithRuntime);
+      mockPostMessage.mockClear();
+      fireEvent.click(findActionButton('Active', 'View messages'));
+      expect(mockPostMessage).toHaveBeenCalledWith({ command: 'viewMessages' });
+    });
+
+    it('posts sendMessage when send icon clicked on Active tile', () => {
+      render(<App />);
+      sendInit(subDataWithRuntime);
+      mockPostMessage.mockClear();
+      fireEvent.click(findActionButton('Active', 'Send message'));
+      expect(mockPostMessage).toHaveBeenCalledWith({ command: 'sendMessage' });
+    });
+
+    it('posts viewDeadLetter when eye icon clicked on Dead-letter tile', () => {
+      render(<App />);
+      sendInit(subDataWithRuntime);
+      mockPostMessage.mockClear();
+      fireEvent.click(findActionButton('Dead-letter', 'View messages'));
+      expect(mockPostMessage).toHaveBeenCalledWith({ command: 'viewDeadLetter' });
+    });
+
+    it('opens purge confirmation modal when trash icon clicked on Active tile', () => {
+      render(<App />);
+      sendInit(subDataWithRuntime);
+      fireEvent.click(findActionButton('Active', 'Purge messages'));
+      expect(screen.getByText('Confirm Purge')).toBeInTheDocument();
+    });
+
+    it('posts purgeActive when purge confirmed', () => {
+      render(<App />);
+      sendInit(subDataWithRuntime);
+      fireEvent.click(findActionButton('Active', 'Purge messages'));
+      mockPostMessage.mockClear();
+      fireEvent.click(screen.getByRole('button', { name: 'Purge' }));
+      expect(mockPostMessage).toHaveBeenCalledWith({ command: 'purgeActive' });
+    });
+  });
+
   describe('Error handling', () => {
     it('shows error message from extension', () => {
       render(<App />);
