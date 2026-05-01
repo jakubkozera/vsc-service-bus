@@ -1,5 +1,5 @@
 {
-  "name": "service-bus-explorer",
+  "name": "azure-service-bus-explorer",
   "displayName": "Service Bus Explorer",
   "description": "Manage Azure Service Bus namespaces, queues, topics, subscriptions, rules and messages from VS Code.",
   "version": "0.1.0",
