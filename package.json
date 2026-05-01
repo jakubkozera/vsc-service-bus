@@ -3,7 +3,14 @@
   "displayName": "Service Bus Explorer",
   "description": "Manage Azure Service Bus namespaces, queues, topics, subscriptions, rules and messages from VS Code.",
   "version": "0.1.0",
-  "publisher": "jakub",
+  "publisher": "jakubkozera",
+  "sponsor": {
+    "url": "https://github.com/sponsors/jakubkozera"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jakubkozera/vsc-service-bus.git"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
