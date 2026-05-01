@@ -229,7 +229,13 @@
 /* ── Tooltip ── */
 .tooltipWrap {
   position: relative;
-  display: inline-flex;
+  display: flex;
+  width: 100%;
+}
+
+.tooltipWrap > :first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .tooltip {
@@ -377,6 +383,15 @@
 
 .lockIcon {
   color: var(--vscode-descriptionForeground);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.toggleControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
   flex-shrink: 0;
 }
 

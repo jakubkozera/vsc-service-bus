@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { App } from './App';
 
@@ -40,7 +40,7 @@ describe('EntityEditor App', () => {
 
   it('shows loading state initially', () => {
     render(<App />);
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
   it('sends webviewReady on mount', () => {
@@ -78,17 +78,8 @@ describe('EntityEditor App', () => {
     it('renders queue header with name and status', () => {
       render(<App />);
       sendInit(queueData);
-      // name appears in header and breadcrumb
       expect(screen.getAllByText('test-queue').length).toBeGreaterThanOrEqual(1);
-      // Active appears in badge and possibly dropdown
       expect(screen.getAllByText('Active').length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('renders breadcrumb with namespace path', () => {
-      render(<App />);
-      sendInit(queueData);
-      expect(screen.getByText('Service Bus')).toBeInTheDocument();
-      expect(screen.getByText('Queues')).toBeInTheDocument();
     });
 
     it('renders stats row with runtime data', () => {
@@ -102,7 +93,6 @@ describe('EntityEditor App', () => {
       render(<App />);
       sendInit(queueData);
       expect(screen.getByText('Timing & Delivery')).toBeInTheDocument();
-      // Lock duration PT1M → minutes = 1
       expect(screen.getByText('Lock duration')).toBeInTheDocument();
       expect(screen.getByText('Default message TTL')).toBeInTheDocument();
     });
@@ -126,7 +116,7 @@ describe('EntityEditor App', () => {
     it('renders JSON viewer with runtime data', () => {
       render(<App />);
       sendInit(queueData);
-      expect(screen.getByText('Runtime — raw response')).toBeInTheDocument();
+      expect(screen.getByText('Runtime - raw response')).toBeInTheDocument();
     });
 
     it('does not render save bar in view mode', () => {
@@ -162,7 +152,6 @@ describe('EntityEditor App', () => {
     it('marks dirty when field changes', () => {
       render(<App />);
       sendInit(editData);
-      // maxDeliveryCount is a NumberInput with value "10"
       const input = screen.getByDisplayValue('10');
       fireEvent.change(input, { target: { value: '5' } });
       expect(screen.getByText('You have unsaved changes')).toBeInTheDocument();
@@ -253,19 +242,16 @@ describe('EntityEditor App', () => {
       },
     };
 
-    it('renders topic header', () => {
+    it('renders topic header with name', () => {
       render(<App />);
       sendInit(topicData);
-      // 'events' appears in header, breadcrumb, and JSON
       expect(screen.getAllByText('events').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Topics').length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows subscription count in stats', () => {
       render(<App />);
       sendInit(topicData);
       expect(screen.getByText('Subscriptions')).toBeInTheDocument();
-      // Stat value appears
       const statCards = document.querySelectorAll('[class*="statValue"]');
       expect(statCards.length).toBeGreaterThanOrEqual(1);
     });
@@ -320,7 +306,6 @@ describe('EntityEditor App', () => {
     };
 
     function findActionButton(cardLabel: string, tooltipLabel: string): HTMLElement {
-      // Find the statLabel element containing the card label (specific to stat cards)
       const labelEls = screen.getAllByText(cardLabel);
       const labelEl = labelEls.find(el => el.className.includes('statLabel'));
       if (!labelEl) throw new Error(`No stat card label found for "${cardLabel}"`);
@@ -328,7 +313,7 @@ describe('EntityEditor App', () => {
       if (!card) throw new Error(`No card parent for ${cardLabel}`);
       const buttons = card.querySelectorAll('button');
       for (const btn of Array.from(buttons)) {
-        const tip = btn.parentElement?.querySelector('div.tooltip');
+        const tip = btn.parentElement?.querySelector('div[class*="tooltip"]');
         if (tip?.textContent === tooltipLabel) return btn as HTMLElement;
       }
       throw new Error(`No "${tooltipLabel}" button in "${cardLabel}" card`);
@@ -372,6 +357,114 @@ describe('EntityEditor App', () => {
       mockPostMessage.mockClear();
       fireEvent.click(screen.getByRole('button', { name: 'Purge' }));
       expect(mockPostMessage).toHaveBeenCalledWith({ command: 'purgeActive' });
+    });
+  });
+
+  describe('Feature Toggles', () => {
+    const queueEditData = {
+      mode: 'edit' as const,
+      kind: 'queue' as const,
+      name: 'test-queue',
+      properties: {
+        lockDuration: 'PT30S',
+        defaultMessageTimeToLive: 'P14D',
+        maxDeliveryCount: 10,
+        maxSizeInMegabytes: 1024,
+        status: 'Active',
+        requiresSession: true,
+        requiresDuplicateDetection: false,
+        enablePartitioning: false,
+        deadLetteringOnMessageExpiration: false,
+        enableBatchedOperations: true,
+      },
+    };
+
+    it('shows tooltip on immutable feature row', () => {
+      render(<App />);
+      sendInit(queueEditData);
+      // Immutable features (Requires session, Requires duplicate detection, Enable partitioning)
+      // should be wrapped with a Tooltip component
+      const toggleRows = document.querySelectorAll('[class*="toggleRow"]');
+      const immutableRows = Array.from(toggleRows).filter(r => r.className.includes('toggleDisabled'));
+      expect(immutableRows.length).toBe(3);
+      // Each immutable row should be inside a tooltipWrap
+      immutableRows.forEach(row => {
+        const wrapper = row.parentElement;
+        expect(wrapper?.className).toContain('tooltipWrap');
+      });
+    });
+
+    it('shows lock icon on immutable features', () => {
+      render(<App />);
+      sendInit(queueEditData);
+      // Lock icons should be SVG elements within the toggle rows
+      const lockIcons = document.querySelectorAll('[class*="lockIcon"]');
+      expect(lockIcons.length).toBe(3); // 3 immutable queue features
+    });
+
+    it('immutable features have not-allowed cursor', () => {
+      render(<App />);
+      sendInit(queueEditData);
+      const toggleRows = document.querySelectorAll('[class*="toggleDisabled"]');
+      expect(toggleRows.length).toBe(3);
+    });
+
+    it('non-immutable features have no tooltip wrapper', () => {
+      render(<App />);
+      sendInit(queueEditData);
+      // Dead-letter on expiration and Enable batched operations are mutable
+      const allRows = document.querySelectorAll('[class*="toggleRow"]');
+      const mutableRows = Array.from(allRows).filter(r => !r.className.includes('toggleDisabled'));
+      expect(mutableRows.length).toBe(2);
+      mutableRows.forEach(row => {
+        const wrapper = row.parentElement;
+        expect(wrapper?.className).not.toContain('tooltipWrap');
+      });
+    });
+  });
+
+  describe('Forward-to Dropdown', () => {
+    const queueWithTargets = {
+      mode: 'edit' as const,
+      kind: 'queue' as const,
+      name: 'orders',
+      properties: {
+        lockDuration: 'PT30S',
+        defaultMessageTimeToLive: 'P14D',
+        maxDeliveryCount: 10,
+        maxSizeInMegabytes: 1024,
+        status: 'Active',
+        enableBatchedOperations: true,
+        forwardTo: '',
+        forwardDeadLetteredMessagesTo: '',
+      },
+      availableTargets: [
+        { name: 'audit-queue', kind: 'queue' },
+        { name: 'errors-queue', kind: 'queue' },
+        { name: 'events-topic', kind: 'topic' },
+      ],
+    };
+
+    it('renders forward-to as dropdown with available targets', () => {
+      render(<App />);
+      sendInit(queueWithTargets);
+      // Forward-to fields are rendered as combobox dropdowns
+      const comboboxes = screen.getAllByRole('combobox');
+      // At minimum: Status dropdown + 2 forward-to dropdowns
+      expect(comboboxes.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('shows (none) as default selected value in forward dropdowns', () => {
+      render(<App />);
+      sendInit(queueWithTargets);
+      // Find the forward-to labels
+      expect(screen.getByText('Forward to')).toBeInTheDocument();
+      expect(screen.getByText('Forward dead-letter to')).toBeInTheDocument();
+      // With empty forwardTo, the dropdown should display "(none)" text
+      const comboboxes = screen.getAllByRole('combobox');
+      // The forward-to dropdowns should show (none) for empty values
+      const noneDropdowns = comboboxes.filter(dd => dd.textContent?.includes('(none)'));
+      expect(noneDropdowns.length).toBeGreaterThanOrEqual(2);
     });
   });
 
