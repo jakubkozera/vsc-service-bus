@@ -52,8 +52,8 @@ export function activate(context: vscode.ExtensionContext): void {
   registerAdvancedCommands(context, purge, listener, tree, admin);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('serviceBusExplorer.hello', () => {
-      void vscode.window.showInformationMessage('Hello from Service Bus Explorer');
+    vscode.commands.registerCommand('serviceBusExplorer.focus', () => {
+      void vscode.commands.executeCommand('serviceBusExplorer.namespacesView.focus');
     })
   );
 

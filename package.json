@@ -17,7 +17,7 @@
   ],
   "contributes": {
     "viewsContainers": {
-      "secondarySidebar": [
+      "activitybar": [
         {
           "id": "serviceBusExplorer",
           "title": "Service Bus Explorer",
@@ -42,10 +42,6 @@
       }
     ],
     "commands": [
-      {
-        "command": "serviceBusExplorer.hello",
-        "title": "Service Bus Explorer: Hello"
-      },
       {
         "command": "serviceBusExplorer.addNamespace",
         "title": "Add Namespace",
@@ -281,9 +277,56 @@
         "command": "serviceBusExplorer.batch.export",
         "title": "Export Selected",
         "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.focus",
+        "title": "Focus on Service Bus Explorer",
+        "category": "Service Bus",
+        "icon": "media/namespace.svg"
       }
     ],
     "menus": {
+      "commandPalette": [
+        { "command": "serviceBusExplorer.removeNamespace", "when": "false" },
+        { "command": "serviceBusExplorer.editNamespace", "when": "false" },
+        { "command": "serviceBusExplorer.testConnection", "when": "false" },
+        { "command": "serviceBusExplorer.refreshNode", "when": "false" },
+        { "command": "serviceBusExplorer.copyName", "when": "false" },
+        { "command": "serviceBusExplorer.queue.create", "when": "false" },
+        { "command": "serviceBusExplorer.queue.open", "when": "false" },
+        { "command": "serviceBusExplorer.queue.edit", "when": "false" },
+        { "command": "serviceBusExplorer.queue.rename", "when": "false" },
+        { "command": "serviceBusExplorer.queue.delete", "when": "false" },
+        { "command": "serviceBusExplorer.queue.send", "when": "false" },
+        { "command": "serviceBusExplorer.queue.purge", "when": "false" },
+        { "command": "serviceBusExplorer.topic.create", "when": "false" },
+        { "command": "serviceBusExplorer.topic.open", "when": "false" },
+        { "command": "serviceBusExplorer.topic.edit", "when": "false" },
+        { "command": "serviceBusExplorer.topic.rename", "when": "false" },
+        { "command": "serviceBusExplorer.topic.delete", "when": "false" },
+        { "command": "serviceBusExplorer.topic.send", "when": "false" },
+        { "command": "serviceBusExplorer.subscription.create", "when": "false" },
+        { "command": "serviceBusExplorer.subscription.open", "when": "false" },
+        { "command": "serviceBusExplorer.subscription.edit", "when": "false" },
+        { "command": "serviceBusExplorer.subscription.delete", "when": "false" },
+        { "command": "serviceBusExplorer.subscription.purge", "when": "false" },
+        { "command": "serviceBusExplorer.rule.create", "when": "false" },
+        { "command": "serviceBusExplorer.rule.edit", "when": "false" },
+        { "command": "serviceBusExplorer.rule.delete", "when": "false" },
+        { "command": "serviceBusExplorer.messages.view", "when": "false" },
+        { "command": "serviceBusExplorer.messages.viewDeadLetter", "when": "false" },
+        { "command": "serviceBusExplorer.dashboard.open", "when": "false" },
+        { "command": "serviceBusExplorer.namespace.export", "when": "false" },
+        { "command": "serviceBusExplorer.namespace.import", "when": "false" },
+        { "command": "serviceBusExplorer.entity.export", "when": "false" },
+        { "command": "serviceBusExplorer.listener.start", "when": "false" },
+        { "command": "serviceBusExplorer.testSender.open", "when": "false" },
+        { "command": "serviceBusExplorer.legacyXml.import", "when": "false" },
+        { "command": "serviceBusExplorer.batch.delete", "when": "false" },
+        { "command": "serviceBusExplorer.batch.disable", "when": "false" },
+        { "command": "serviceBusExplorer.batch.enable", "when": "false" },
+        { "command": "serviceBusExplorer.batch.export", "when": "false" }
+      ],
       "view/title": [
         {
           "command": "serviceBusExplorer.addNamespace",
