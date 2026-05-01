@@ -17,6 +17,7 @@ function serializeMessage(m: ServiceBusReceivedMessage): any {
     subject: m.subject,
     contentType: m.contentType,
     enqueuedTimeUtc: m.enqueuedTimeUtc,
+    scheduledEnqueueTimeUtc: m.scheduledEnqueueTimeUtc,
     deliveryCount: m.deliveryCount,
     state: m.state,
     body: previewBody(m.body),
@@ -240,8 +241,7 @@ export function registerMessageCommands(
         try {
           if (msg.command === 'peek') {
             Logger.info(`[Messages] Peek scheduled ${msg.count} from ${item.queueName}`);
-            const list = await messages.peek(item.nsId, { queue: item.queueName }, msg.count ?? 500);
-            const scheduled = list.filter(m => m.state === 'scheduled');
+            const scheduled = await messages.peekScheduled(item.nsId, { queue: item.queueName }, msg.count ?? 500);
             Logger.info(`[Messages] Peek returned ${scheduled.length} scheduled messages`);
             host.post({ command: 'messages', mode: 'peek', items: scheduled.map(serializeMessage) });
           } else if (msg.command === 'cancelScheduled') {

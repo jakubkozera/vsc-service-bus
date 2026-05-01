@@ -10,6 +10,7 @@ interface Msg {
   subject?: string;
   contentType?: string;
   enqueuedTimeUtc?: string;
+  scheduledEnqueueTimeUtc?: string;
   deliveryCount?: number;
   state?: string;
   body?: string;
@@ -98,7 +99,7 @@ function matchesFilter(cellValue: string | number | undefined, filter: ColumnFil
 }
 
 export const App: React.FC = () => {
-  const [init, setInit] = useState<{ source: any; isDLQ: boolean; peekDefault: number; totalMessageCount?: number } | null>(null);
+  const [init, setInit] = useState<{ source: any; isDLQ: boolean; isScheduled?: boolean; peekDefault: number; totalMessageCount?: number } | null>(null);
   const [mode, setMode] = useState<Mode>('peek');
   const [count, setCount] = useState(50);
   const [items, setItems] = useState<Msg[]>([]);
@@ -493,6 +494,11 @@ export const App: React.FC = () => {
                       </div>
                     )}
                   </th>
+                  {init?.isScheduled && (
+                    <th className={styles.th}>
+                      <span className={styles.thContent}>Scheduled For</span>
+                    </th>
+                  )}
                   <th className={styles.th}>
                     <span className={styles.thContent}>
                       DC
@@ -513,7 +519,7 @@ export const App: React.FC = () => {
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={isPeekLock ? 7 : 6} className={styles.emptyStateCell}>
+                  <tr><td colSpan={isPeekLock ? 7 : (init?.isScheduled ? 7 : 6)} className={styles.emptyStateCell}>
                     <div className={styles.emptyIcon}><IconMailboxOff size={24} stroke={1.5} /></div>
                     No matching messages
                   </td></tr>
@@ -537,6 +543,7 @@ export const App: React.FC = () => {
                     <td className={styles.td}>{m.messageId}</td>
                     <td className={styles.td}>{m.subject}</td>
                     <td className={styles.td}>{m.enqueuedTimeUtc?.toString().slice(0, 19)}</td>
+                    {init?.isScheduled && <td className={styles.td}>{m.scheduledEnqueueTimeUtc?.toString().slice(0, 19)}</td>}
                     <td className={styles.td}>{m.deliveryCount}</td>
                     {isPeekLock && (
                       <td className={styles.tdActions}>
@@ -575,6 +582,7 @@ export const App: React.FC = () => {
                 {selected.subject && <MetaRow label="Subject" value={selected.subject} />}
                 {selected.contentType && <MetaRow label="Content Type" value={selected.contentType} />}
                 {selected.enqueuedTimeUtc && <MetaRow label="Enqueued" value={selected.enqueuedTimeUtc.toString().slice(0, 19)} />}
+                {selected.scheduledEnqueueTimeUtc && <MetaRow label="Scheduled For" value={selected.scheduledEnqueueTimeUtc.toString().slice(0, 19)} />}
                 {selected.deliveryCount != null && <MetaRow label="Delivery Count" value={String(selected.deliveryCount)} />}
                 {selected.state && <MetaRow label="State" value={selected.state} />}
 

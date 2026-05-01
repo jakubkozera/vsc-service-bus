@@ -116,8 +116,8 @@ export function registerEntityCommands(
         } else if (msg?.command === 'purgeScheduled') {
           try {
             await withProgress('Cancelling scheduled…', async () => {
-              const peeked = await messages.peek(item.nsId, { queue: item.queueName }, 500);
-              const scheduledSeqs = peeked.filter(m => m.state === 'scheduled' && m.sequenceNumber).map(m => m.sequenceNumber!);
+              const scheduled = await messages.peekScheduled(item.nsId, { queue: item.queueName }, 5000);
+              const scheduledSeqs = scheduled.filter(m => m.sequenceNumber).map(m => m.sequenceNumber!);
               if (scheduledSeqs.length > 0) {
                 await send.cancelScheduled(item.nsId, { queue: item.queueName }, scheduledSeqs);
               }

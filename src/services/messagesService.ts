@@ -44,6 +44,42 @@ export class MessagesService {
     }
   }
 
+  /**
+   * Peek scheduled messages by iterating through the queue in batches.
+   * Unlike `peek` + client-side filter, this keeps peeking until it finds
+   * the desired count of scheduled messages or exhausts the queue.
+   */
+  async peekScheduled(nsId: string, src: MessageSource, count: number): Promise<ServiceBusReceivedMessage[]> {
+    const { receiver } = await this.createReceiver(nsId, src);
+    try {
+      const result: ServiceBusReceivedMessage[] = [];
+      let from: Long = Long.ZERO;
+      const batchSize = 200;
+
+      while (result.length < count) {
+        const batch = await receiver.peekMessages(batchSize, { fromSequenceNumber: from });
+        if (batch.length === 0) { break; }
+
+        for (const m of batch) {
+          if (m.state === 'scheduled') {
+            result.push(m);
+            if (result.length >= count) { break; }
+          }
+        }
+
+        const lastSeq = batch[batch.length - 1].sequenceNumber;
+        if (lastSeq === undefined || lastSeq === null) { break; }
+        const nextFrom = Long.fromValue(lastSeq as any).add(1);
+        if (nextFrom.lte(from)) { break; }
+        from = nextFrom;
+      }
+
+      return result;
+    } finally {
+      await receiver.close();
+    }
+  }
+
   async receiveAndDelete(nsId: string, src: MessageSource, count: number, timeoutMs: number): Promise<ServiceBusReceivedMessage[]> {
     const { receiver } = await this.createReceiver(nsId, src, {
       receiveMode: 'receiveAndDelete',
