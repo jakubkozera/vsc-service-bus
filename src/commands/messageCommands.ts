@@ -60,9 +60,7 @@ export function registerMessageCommands(
       if (!item) return;
       const src = sourceFromItem(item);
       const isDLQ = !!src.subQueue;
-      const iconPath = src.topic
-        ? { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-dark.svg') }
-        : { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-dark.svg') };
+      const iconPath = vscode.Uri.joinPath(ctx.extensionUri, 'media', src.topic ? 'topic.svg' : 'queue.svg');
 
       // Get initial total message count
       const totalMessageCount = await getMessageCount(admin, src, isDLQ);
@@ -235,7 +233,7 @@ export function registerMessageCommands(
         title: `Scheduled: ${item.queueName}`,
         bundleId: 'messages',
         initData: { source: { queue: item.queueName }, isDLQ: false, isScheduled: true, peekDefault: peekDefault() },
-        iconPath: { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-dark.svg') }
+        iconPath: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue.svg')
       });
 
       host.onMessage(async (msg: any) => {

@@ -51,9 +51,7 @@ function buildMessages(p: SendPayload): ServiceBusMessage[] {
 
 export function registerSendCommands(ctx: vscode.ExtensionContext, send: SendService, tree: NamespacesTreeProvider, admin: AdminService): void {
   const open = async (target: { queue?: string; topic?: string }, nsId: string, title: string, isTestSender = false) => {
-    const iconPath = target.topic
-      ? { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-dark.svg') }
-      : { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-dark.svg') };
+    const iconPath = vscode.Uri.joinPath(ctx.extensionUri, 'media', target.topic ? 'topic.svg' : 'queue.svg');
 
     // Load all available targets in this namespace for the target dropdown
     let availableTargets: { name: string; kind: 'queue' | 'topic' }[] = [];

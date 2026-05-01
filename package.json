@@ -17,11 +17,11 @@
   ],
   "contributes": {
     "viewsContainers": {
-      "activitybar": [
+      "secondarySidebar": [
         {
           "id": "serviceBusExplorer",
           "title": "Service Bus Explorer",
-          "icon": "media/service-bus.svg"
+          "icon": "media/namespace.svg"
         }
       ]
     },
@@ -30,7 +30,7 @@
         {
           "id": "serviceBusExplorer.namespacesView",
           "name": "Namespaces",
-          "icon": "media/service-bus.svg",
+          "icon": "media/namespace.svg",
           "contextualTitle": "Service Bus Explorer"
         }
       ]

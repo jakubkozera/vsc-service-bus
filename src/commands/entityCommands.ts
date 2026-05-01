@@ -34,9 +34,7 @@ async function loadAvailableTargets(admin: AdminService, nsId: string, cache?: T
 
 function entityWebview(ctx: vscode.ExtensionContext, viewType: string, title: string, initData: any, onSave: (payload: any) => Promise<void>): WebviewHost {
   const kind = initData.kind as string;
-  const iconPath = kind === 'topic'
-    ? { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'topic-dark.svg') }
-    : { light: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-light.svg'), dark: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'queue-dark.svg') };
+  const iconPath = vscode.Uri.joinPath(ctx.extensionUri, 'media', kind === 'topic' ? 'topic.svg' : 'queue.svg');
   const host = new WebviewHost(ctx, { viewType, title, bundleId: 'entityEditor', initData, iconPath });
   host.onMessage(async (msg: any) => {
     if (msg?.command === 'save') {
