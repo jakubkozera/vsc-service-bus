@@ -8,8 +8,6 @@ webviews/vite.config.*
 **/*.map
 **/*.ts
 node_modules/**
-!node_modules/@azure/**
-!node_modules/uuid/**
 .gitignore
 esbuild.config.js
 tsconfig.json

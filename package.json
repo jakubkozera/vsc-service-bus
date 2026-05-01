@@ -12,6 +12,7 @@
     "Azure"
   ],
   "main": "./dist/extension.js",
+  "icon": "media/icon.png",
   "activationEvents": [
     "onView:serviceBusExplorer.namespacesView"
   ],
