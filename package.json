@@ -1,6 +1,6 @@
 {
-  "name": "azure-service-bus-explorer-vsc",
-  "displayName": "Azure Service Bus Explorer",
+  "name": "azure-service-bus-explorer",
+  "displayName": "Azure Service Bus Studio",
   "description": "Manage Azure Service Bus namespaces, queues, topics, subscriptions, rules and messages from VS Code.",
   "version": "0.1.0",
   "publisher": "jakubkozera",
