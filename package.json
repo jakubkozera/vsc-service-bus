@@ -29,7 +29,7 @@
         {
           "id": "serviceBusExplorer",
           "title": "Service Bus Explorer",
-          "icon": "media/namespace.svg"
+          "icon": "media/namespace_mono.svg"
         }
       ]
     },
@@ -38,7 +38,7 @@
         {
           "id": "serviceBusExplorer.namespacesView",
           "name": "Namespaces",
-          "icon": "media/namespace.svg",
+          "icon": "media/namespace_mono.svg",
           "contextualTitle": "Service Bus Explorer"
         }
       ]
@@ -289,8 +289,7 @@
       {
         "command": "serviceBusExplorer.focus",
         "title": "Focus on Service Bus Explorer",
-        "category": "Service Bus",
-        "icon": "media/namespace.svg"
+        "category": "Service Bus"
       }
     ],
     "menus": {
