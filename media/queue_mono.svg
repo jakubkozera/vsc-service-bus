@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none">
+  <!-- [ ] corner brackets at edges -->
+  <g fill="currentColor">
+    <rect x="0.3" y="0.3" width="0.75" height="3.8"/>
+    <rect x="0.3" y="0.3" width="3.8" height="0.75"/>
+    <rect x="16.95" y="0.3" width="0.75" height="3.8"/>
+    <rect x="13.9" y="0.3" width="3.8" height="0.75"/>
+    <rect x="0.3" y="13.92" width="0.75" height="3.8"/>
+    <rect x="0.3" y="16.95" width="3.8" height="0.75"/>
+    <rect x="16.95" y="13.92" width="0.75" height="3.8"/>
+    <rect x="13.9" y="16.95" width="3.8" height="0.75"/>
+  </g>
+
+  <!-- Two envelopes side by side, vertically centered -->
+  <g stroke="currentColor" stroke-width="0.65" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left envelope -->
+    <rect x="2.0" y="6.5" width="6.4" height="5.0" rx="0.2"/>
+    <polyline points="2.0,6.5 5.2,9.2 8.4,6.5"/>
+    <!-- Right envelope -->
+    <rect x="9.6" y="6.5" width="6.4" height="5.0" rx="0.2"/>
+    <polyline points="9.6,6.5 12.8,9.2 16.0,6.5"/>
+  </g>
+</svg>

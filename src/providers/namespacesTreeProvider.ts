@@ -16,11 +16,14 @@ import {
 } from './treeItems';
 import { Logger } from '../logging/logger';
 
+export type EntityViewRefresher = (nsId?: string) => Promise<void>;
+
 export class NamespacesTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private treeFilter = '';
+  private _entityViewRefresher: EntityViewRefresher | undefined;
 
   constructor(
     private store: NamespaceStore,
@@ -28,6 +31,11 @@ export class NamespacesTreeProvider implements vscode.TreeDataProvider<vscode.Tr
     private cache: TreeCache
   ) {
     store.onDidChange(() => this.refresh());
+  }
+
+  /** Register a callback to refresh open entity webviews when tree data changes. */
+  setEntityViewRefresher(fn: EntityViewRefresher): void {
+    this._entityViewRefresher = fn;
   }
 
   setFilter(filter: string): void {
@@ -38,14 +46,18 @@ export class NamespacesTreeProvider implements vscode.TreeDataProvider<vscode.Tr
   refresh(node?: vscode.TreeItem): void {
     if (!node) {
       this.cache.invalidateAll();
+      void this._entityViewRefresher?.();
     } else if ('nsId' in node) {
-      this.cache.invalidate((node as any).nsId);
+      const nsId = (node as any).nsId;
+      this.cache.invalidate(nsId);
+      void this._entityViewRefresher?.(nsId);
     }
     this._onDidChangeTreeData.fire();
   }
 
   invalidateNamespace(nsId: string): void {
     this.cache.invalidate(nsId);
+    void this._entityViewRefresher?.(nsId);
     this._onDidChangeTreeData.fire();
   }
 

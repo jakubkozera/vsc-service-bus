@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Input, Modal } from '@shared/components';
-import { IconSend, IconTrash, IconPencil } from '@tabler/icons-react';
+import { IconSend, IconTrash, IconPencil, IconRefresh } from '@tabler/icons-react';
 import { Tooltip } from './Tooltip';
 import { EntitySvgIcon } from './EntitySvgIcon';
 import { InitData } from '../types';
@@ -40,6 +40,13 @@ export const EntityHeader: React.FC<{ init: InitData; props: any; postMessage: (
           </div>
         </div>
         <div className={styles.entityActions}>
+          {init.mode === 'edit' && (
+            <Tooltip label="Refresh">
+              <button className={styles.headerIconBtn} onClick={() => postMessage({ command: 'refresh' })}>
+                <IconRefresh size={16} />
+              </button>
+            </Tooltip>
+          )}
           {init.mode === 'edit' && (init.kind === 'queue' || init.kind === 'topic') && (
             <>
               {init.kind === 'topic' && (

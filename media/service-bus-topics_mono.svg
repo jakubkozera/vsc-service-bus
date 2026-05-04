@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none">
+  <!-- [ ] corner brackets at edges -->
+  <g fill="currentColor">
+    <rect x="0.3" y="0.3" width="0.75" height="3.8"/>
+    <rect x="0.3" y="0.3" width="3.8" height="0.75"/>
+    <rect x="16.95" y="0.3" width="0.75" height="3.8"/>
+    <rect x="13.9" y="0.3" width="3.8" height="0.75"/>
+    <rect x="0.3" y="13.92" width="0.75" height="3.8"/>
+    <rect x="0.3" y="16.95" width="3.8" height="0.75"/>
+    <rect x="16.95" y="13.92" width="0.75" height="3.8"/>
+    <rect x="13.9" y="16.95" width="3.8" height="0.75"/>
+  </g>
+
+  <!-- 1 large envelope left + 2 small envelopes right + fan-out lines -->
+  <g stroke="currentColor" stroke-width="0.65" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left large envelope -->
+    <rect x="1.8" y="5.5" width="7.0" height="7.0" rx="0.2"/>
+    <polyline points="1.8,5.5 5.3,8.5 8.8,5.5"/>
+
+    <!-- Fan-out lines -->
+    <line x1="8.8" y1="7.2" x2="10.4" y2="6.5"/>
+    <line x1="8.8" y1="9.0" x2="10.4" y2="11.5"/>
+
+    <!-- Top-right small envelope -->
+    <rect x="10.4" y="4.8" width="5.8" height="4.0" rx="0.2"/>
+    <polyline points="10.4,4.8 13.3,6.8 16.2,4.8"/>
+
+    <!-- Bottom-right small envelope -->
+    <rect x="10.4" y="9.8" width="5.8" height="4.0" rx="0.2"/>
+    <polyline points="10.4,9.8 13.3,11.8 16.2,9.8"/>
+  </g>
+</svg>

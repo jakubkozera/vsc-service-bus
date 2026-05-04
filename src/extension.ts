@@ -11,7 +11,7 @@ import { ListenerService } from './services/listenerService';
 import { NamespacesTreeProvider } from './providers/namespacesTreeProvider';
 import { setExtensionUri } from './providers/treeItems';
 import { registerNamespaceCommands } from './commands/namespaceCommands';
-import { registerEntityCommands } from './commands/entityCommands';
+import { registerEntityCommands, refreshOpenEntityViews } from './commands/entityCommands';
 import { registerMessageCommands } from './commands/messageCommands';
 import { registerSendCommands } from './commands/sendCommands';
 import { registerDashboardCommands } from './commands/dashboardCommands';
@@ -36,6 +36,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const listener = new ListenerService(factory);
 
   const tree = new NamespacesTreeProvider(store, admin, cache);
+  tree.setEntityViewRefresher(refreshOpenEntityViews);
   const view = vscode.window.createTreeView('serviceBusExplorer.namespacesView', {
     treeDataProvider: tree,
     showCollapseAll: true,

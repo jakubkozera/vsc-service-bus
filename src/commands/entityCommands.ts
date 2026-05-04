@@ -8,6 +8,30 @@ import { showError, withProgress } from '../utils/errors';
 import { PurgeService } from '../services/purgeService';
 import { SendService } from '../services/sendService';
 import { TreeCache } from '../state/treeCache';
+import { Logger } from '../logging/logger';
+
+/** Tracks open entity webviews so they can be refreshed when tree data changes. */
+export interface OpenEntityView {
+  host: WebviewHost;
+  nsId: string;
+  kind: 'queue' | 'topic' | 'subscription';
+  entityName: string;
+  topicName?: string;
+  refresh: () => Promise<void>;
+}
+
+const openEntityViews = new Set<OpenEntityView>();
+
+/** Refresh all open entity webviews matching the given namespace (or all if nsId is undefined). */
+export async function refreshOpenEntityViews(nsId?: string): Promise<void> {
+  const views = [...openEntityViews].filter(v => !nsId || v.nsId === nsId);
+  await Promise.allSettled(views.map(v => v.refresh()));
+}
+
+function trackEntityView(view: OpenEntityView): void {
+  openEntityViews.add(view);
+  view.host.onDispose(() => openEntityViews.delete(view));
+}
 
 async function loadAvailableTargets(admin: AdminService, nsId: string, cache?: TreeCache): Promise<{ name: string; kind: 'queue' | 'topic' }[]> {
   // Use cache if available
@@ -84,8 +108,20 @@ export function registerEntityCommands(
           tree.invalidateNamespace(item.nsId);
         }
       );
+      const refreshQueue = async () => {
+        try {
+          const [fresh, targets] = await Promise.all([
+            admin.getQueue(item.nsId, item.queueName),
+            loadAvailableTargets(admin, item.nsId, cache)
+          ]);
+          host.post({ command: 'init', data: { mode: 'edit', kind: 'queue', name: item.queueName, properties: fresh.properties, runtime: fresh.runtime, availableTargets: targets } });
+        } catch (e) { Logger.warn('refresh queue webview', String(e)); }
+      };
+      trackEntityView({ host, nsId: item.nsId, kind: 'queue', entityName: item.queueName, refresh: refreshQueue });
       host.onMessage(async (msg: any) => {
-        if (msg?.command === 'viewMessages') {
+        if (msg?.command === 'refresh') {
+          await refreshQueue();
+        } else if (msg?.command === 'viewMessages') {
           vscode.commands.executeCommand('serviceBusExplorer.messages.view', item);
         } else if (msg?.command === 'viewDeadLetter') {
           const dlqItem = new DeadLetterItem(item.nsId, { queue: item.queueName }, item.dlq);
@@ -212,8 +248,17 @@ export function registerEntityCommands(
           tree.invalidateNamespace(item.nsId);
         }
       );
+      const refreshTopic = async () => {
+        try {
+          const fresh = await admin.getTopic(item.nsId, item.topicName);
+          host.post({ command: 'init', data: { mode: 'edit', kind: 'topic', name: item.topicName, properties: fresh.properties, runtime: fresh.runtime } });
+        } catch (e) { Logger.warn('refresh topic webview', String(e)); }
+      };
+      trackEntityView({ host, nsId: item.nsId, kind: 'topic', entityName: item.topicName, refresh: refreshTopic });
       host.onMessage(async (msg: any) => {
-        if (msg?.command === 'sendMessage') {
+        if (msg?.command === 'refresh') {
+          await refreshTopic();
+        } else if (msg?.command === 'sendMessage') {
           vscode.commands.executeCommand('serviceBusExplorer.topic.send', item);
         } else if (msg?.command === 'createSubscription') {
           vscode.commands.executeCommand('serviceBusExplorer.subscription.create', item);
@@ -306,8 +351,20 @@ export function registerEntityCommands(
           tree.invalidateNamespace(item.nsId);
         }
       );
+      const refreshSub = async () => {
+        try {
+          const [fresh, targets] = await Promise.all([
+            admin.getSubscription(item.nsId, item.topicName, item.subscriptionName),
+            loadAvailableTargets(admin, item.nsId, cache)
+          ]);
+          host.post({ command: 'init', data: { mode: 'edit', kind: 'subscription', topicName: item.topicName, name: item.subscriptionName, properties: fresh.properties, runtime: fresh.runtime, availableTargets: targets } });
+        } catch (e) { Logger.warn('refresh subscription webview', String(e)); }
+      };
+      trackEntityView({ host, nsId: item.nsId, kind: 'subscription', entityName: item.subscriptionName, topicName: item.topicName, refresh: refreshSub });
       host.onMessage(async (msg: any) => {
-        if (msg?.command === 'viewMessages') {
+        if (msg?.command === 'refresh') {
+          await refreshSub();
+        } else if (msg?.command === 'viewMessages') {
           vscode.commands.executeCommand('serviceBusExplorer.messages.view', item);
         } else if (msg?.command === 'viewDeadLetter') {
           const dlqItem = new DeadLetterItem(item.nsId, { topic: item.topicName, subscription: item.subscriptionName }, item.dlq);
