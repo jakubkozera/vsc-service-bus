@@ -37,8 +37,24 @@ export class MessagesService {
   async peek(nsId: string, src: MessageSource, count: number, fromSequenceNumber?: bigint): Promise<ServiceBusReceivedMessage[]> {
     const { receiver } = await this.createReceiver(nsId, src, src.subQueue ? { subQueueType: src.subQueue } : undefined);
     try {
-      const from = fromSequenceNumber !== undefined ? Long.fromString(fromSequenceNumber.toString()) : Long.ZERO;
-      return await receiver.peekMessages(count, { fromSequenceNumber: from });
+      const MAX_BATCH = 250;
+      let from = fromSequenceNumber !== undefined ? Long.fromString(fromSequenceNumber.toString()) : Long.ZERO;
+      const result: ServiceBusReceivedMessage[] = [];
+
+      while (result.length < count) {
+        const batchSize = Math.min(MAX_BATCH, count - result.length);
+        const batch = await receiver.peekMessages(batchSize, { fromSequenceNumber: from });
+        if (batch.length === 0) { break; }
+        result.push(...batch);
+        if (result.length >= count) { break; }
+        const lastSeq = batch[batch.length - 1].sequenceNumber;
+        if (lastSeq === undefined || lastSeq === null) { break; }
+        const nextFrom = Long.fromValue(lastSeq as any).add(1);
+        if (nextFrom.lte(from)) { break; }
+        from = nextFrom;
+      }
+
+      return result;
     } finally {
       await receiver.close();
     }

@@ -2,7 +2,7 @@
   "name": "azure-service-bus-explorer",
   "displayName": "Azure Service Bus Studio",
   "description": "Manage Azure Service Bus namespaces, queues, topics, subscriptions, rules and messages from VS Code.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "publisher": "jakubkozera",
   "sponsor": {
     "url": "https://github.com/sponsors/jakubkozera"
@@ -523,6 +523,12 @@
           "icon": "$(add)"
         },
         {
+          "command": "serviceBusExplorer.refreshNode",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queuesFolder",
+          "group": "inline@2",
+          "icon": "$(refresh)"
+        },
+        {
           "command": "serviceBusExplorer.queue.edit",
           "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
           "group": "1_modify@1"
@@ -568,6 +574,24 @@
           "group": "8_advanced@3"
         },
         {
+          "command": "serviceBusExplorer.messages.view",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "inline@1",
+          "icon": "$(inbox)"
+        },
+        {
+          "command": "serviceBusExplorer.refreshNode",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "inline@2",
+          "icon": "$(refresh)"
+        },
+        {
+          "command": "serviceBusExplorer.queue.send",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == queue",
+          "group": "inline@3",
+          "icon": "$(send)"
+        },
+        {
           "command": "serviceBusExplorer.topic.create",
           "when": "view == serviceBusExplorer.namespacesView && viewItem == topicsFolder",
           "group": "1_modify@1",
@@ -578,6 +602,12 @@
           "when": "view == serviceBusExplorer.namespacesView && viewItem == topicsFolder",
           "group": "inline@1",
           "icon": "$(add)"
+        },
+        {
+          "command": "serviceBusExplorer.refreshNode",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == topicsFolder",
+          "group": "inline@2",
+          "icon": "$(refresh)"
         },
         {
           "command": "serviceBusExplorer.topic.edit",

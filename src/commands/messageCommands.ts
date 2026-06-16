@@ -143,18 +143,18 @@ export function registerMessageCommands(
             await cleanup();
             const recv = await messages.openPeekLockReceiver(src.nsId, src);
             try {
-              const got = await recv.receiveMessages(50, { maxWaitTimeInMs: 5000 });
-              const target = got.find(g => String(g.sequenceNumber) === msg.sequenceNumber);
+              const { found, abandoned } = await receiveBatchUntilFound(recv, new Set([msg.sequenceNumber]));
+              const target = found[0];
               if (target) {
                 const dest = src.queue ? { queue: src.queue } : { topic: src.topic! };
                 await send.send(src.nsId, dest, [messages.toServiceBusMessage(target)]);
                 await recv.completeMessage(target);
-                for (const m of got.filter(g => g !== target)) await recv.abandonMessage(m);
+                for (const m of abandoned) await recv.abandonMessage(m);
                 host.post({ command: 'actionDone', sequenceNumber: msg.sequenceNumber, action: 'resend' });
                 Logger.info(`[Messages] Resend done for seq ${msg.sequenceNumber}`);
                 tree.invalidateNamespace(src.nsId);
               } else {
-                for (const m of got) await recv.abandonMessage(m);
+                for (const m of abandoned) await recv.abandonMessage(m);
                 host.post({ command: 'error', error: `Message ${msg.sequenceNumber} not found` });
               }
             } finally { await recv.close(); }
@@ -163,45 +163,86 @@ export function registerMessageCommands(
             await cleanup();
             const recv = await messages.openPeekLockReceiver(src.nsId, src);
             try {
-              const got = await recv.receiveMessages(50, { maxWaitTimeInMs: 5000 });
-              const target = got.find(g => String(g.sequenceNumber) === msg.sequenceNumber);
+              const { found, abandoned } = await receiveBatchUntilFound(recv, new Set([msg.sequenceNumber]));
+              const target = found[0];
               if (target) {
                 await recv.completeMessage(target);
-                for (const m of got.filter(g => g !== target)) await recv.abandonMessage(m);
+                for (const m of abandoned) await recv.abandonMessage(m);
                 host.post({ command: 'actionDone', sequenceNumber: msg.sequenceNumber, action: 'delete' });
                 Logger.info(`[Messages] Delete done for seq ${msg.sequenceNumber}`);
                 tree.invalidateNamespace(src.nsId);
               } else {
-                for (const m of got) await recv.abandonMessage(m);
+                for (const m of abandoned) await recv.abandonMessage(m);
                 host.post({ command: 'error', error: `Message ${msg.sequenceNumber} not found` });
               }
             } finally { await recv.close(); }
           } else if (msg.command === 'resubmit') {
-            // DLQ: receive locked → send to source → complete
+            // DLQ: receive locked → send to source → optionally complete (remove from DLQ) or abandon
+            // NOTE: double-fetch is necessary — peek gives read-only snapshots without locks;
+            // to complete/abandon we must receiveMessages (peekLock) to obtain locked references.
+            const removeFromDLQ: boolean = msg.removeFromDLQ !== false; // default true
+            const newMessageId: boolean = !!msg.newMessageId;
+            const resubmitSeqs = new Set<string>(msg.sequenceNumbers as string[] | undefined);
             await cleanup();
             const recv = await messages.openPeekLockReceiver(src.nsId, src);
             try {
-              const got = await recv.receiveMessages(msg.count ?? 50, { maxWaitTimeInMs: 5000 });
-              const targets = msg.sequenceNumbers as string[] | undefined;
-              const toSubmit = targets ? got.filter(g => targets.includes(String(g.sequenceNumber))) : got;
+              const { found: toSubmit, abandoned: toAbandon } = await receiveBatchUntilFound(recv, resubmitSeqs);
+
               const target = src.queue ? { queue: src.queue } : { topic: src.topic! };
-              await send.send(src.nsId, target, toSubmit.map(m => messages.toServiceBusMessage(m)));
-              for (const m of toSubmit) await recv.completeMessage(m);
-              for (const m of got.filter(g => !toSubmit.includes(g))) await recv.abandonMessage(m);
-              host.post({ command: 'resubmitDone', count: toSubmit.length });
+              const outMessages = toSubmit.map(m => {
+                const out = messages.toServiceBusMessage(m);
+                if (newMessageId) {
+                  out.messageId = require('crypto').randomUUID();
+                }
+                return out;
+              });
+              await send.send(src.nsId, target, outMessages);
+              if (removeFromDLQ) {
+                for (const m of toSubmit) await recv.completeMessage(m);
+              } else {
+                for (const m of toSubmit) await recv.abandonMessage(m);
+              }
+              for (const m of toAbandon) await recv.abandonMessage(m);
+              host.post({ command: 'resubmitDone', count: toSubmit.length, removedFromDLQ: removeFromDLQ, sequenceNumbers: toSubmit.map(m => String(m.sequenceNumber)) });
             } finally { await recv.close(); }
             tree.invalidateNamespace(src.nsId);
           } else if (msg.command === 'moveTo') {
             const targetName: string = msg.targetName;
             const targetKind: 'queue' | 'topic' = msg.targetKind;
+            const moveSeqs = new Set<string>(msg.sequenceNumbers as string[] | undefined);
             await cleanup();
             const recv = await messages.openPeekLockReceiver(src.nsId, src);
             try {
-              const got = await recv.receiveMessages(msg.count ?? 50, { maxWaitTimeInMs: 5000 });
+              const { found, abandoned } = await receiveBatchUntilFound(recv, moveSeqs);
               const target = targetKind === 'queue' ? { queue: targetName } : { topic: targetName };
-              await send.send(src.nsId, target, got.map(m => messages.toServiceBusMessage(m)));
-              for (const m of got) await recv.completeMessage(m);
-              host.post({ command: 'moveDone', count: got.length });
+              await send.send(src.nsId, target, found.map(m => messages.toServiceBusMessage(m)));
+              for (const m of found) await recv.completeMessage(m);
+              for (const m of abandoned) await recv.abandonMessage(m);
+              host.post({ command: 'moveDone', count: found.length });
+            } finally { await recv.close(); }
+            tree.invalidateNamespace(src.nsId);          } else if (msg.command === 'bulkDelete') {
+            Logger.info(`[Messages] BulkDelete ${(msg.sequenceNumbers as string[]).length} messages from ${src.label}`);
+            await cleanup();
+            const recv = await messages.openPeekLockReceiver(src.nsId, src);
+            try {
+              const deleteSeqs = new Set<string>(msg.sequenceNumbers as string[]);
+              const { found, abandoned } = await receiveBatchUntilFound(recv, deleteSeqs);
+              for (const m of found) await recv.completeMessage(m);
+              for (const m of abandoned) await recv.abandonMessage(m);
+              Logger.info(`[Messages] BulkDelete completed ${found.length} messages`);
+              host.post({ command: 'bulkDeleteDone', sequenceNumbers: found.map(m => String(m.sequenceNumber)) });
+            } finally { await recv.close(); }
+            tree.invalidateNamespace(src.nsId);          } else if (msg.command === 'bulkDelete') {
+            Logger.info(`[Messages] BulkDelete ${(msg.sequenceNumbers as string[]).length} messages from ${src.label}`);
+            await cleanup();
+            const recv = await messages.openPeekLockReceiver(src.nsId, src);
+            try {
+              const deleteSeqs = new Set<string>(msg.sequenceNumbers as string[]);
+              const { found, abandoned } = await receiveBatchUntilFound(recv, deleteSeqs);
+              for (const m of found) await recv.completeMessage(m);
+              for (const m of abandoned) await recv.abandonMessage(m);
+              Logger.info(`[Messages] BulkDelete completed ${found.length} messages`);
+              host.post({ command: 'bulkDeleteDone', sequenceNumbers: found.map(m => String(m.sequenceNumber)) });
             } finally { await recv.close(); }
             tree.invalidateNamespace(src.nsId);
           } else if (msg.command === 'pickMoveTarget') {
@@ -262,6 +303,33 @@ export function registerMessageCommands(
       });
     })
   );
+}
+
+/**
+ * Receives messages in batches of 250 until all sequence numbers in `targets` are found,
+ * or the queue is drained. Messages not in `targets` are collected in `abandoned`.
+ * If `targets` is empty, receives one batch and returns all as `found`.
+ */
+async function receiveBatchUntilFound(
+  recv: ServiceBusReceiver,
+  targets: Set<string>
+): Promise<{ found: ServiceBusReceivedMessage[]; abandoned: ServiceBusReceivedMessage[] }> {
+  const found: ServiceBusReceivedMessage[] = [];
+  const abandoned: ServiceBusReceivedMessage[] = [];
+  while (targets.size === 0 || found.length < targets.size) {
+    const batch = await recv.receiveMessages(250, { maxWaitTimeInMs: 5000 });
+    if (batch.length === 0) { break; }
+    for (const m of batch) {
+      if (targets.size === 0 || targets.has(String(m.sequenceNumber))) {
+        found.push(m);
+      } else {
+        abandoned.push(m);
+      }
+    }
+    if (targets.size > 0 && found.length >= targets.size) { break; }
+    if (targets.size === 0) { break; } // single-batch mode
+  }
+  return { found, abandoned };
 }
 
 async function getMessageCount(admin: AdminService, src: MessageSource & { nsId: string }, isDLQ: boolean): Promise<number> {

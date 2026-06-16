@@ -116,6 +116,9 @@ export const App: React.FC = () => {
   const [copiedBody, setCopiedBody] = useState(false);
   const [copiedAppProps, setCopiedAppProps] = useState(false);
   const [totalMessageCount, setTotalMessageCount] = useState(0);
+  const [resubmitModalOpen, setResubmitModalOpen] = useState(false);
+  const [resubmitRemoveFromDLQ, setResubmitRemoveFromDLQ] = useState(true);
+  const [resubmitNewMessageId, setResubmitNewMessageId] = useState(false);
   const [page, setPage] = useState(1);
   const { postMessage, subscribe } = useVSCodeMessaging<any, any>();
 
@@ -161,6 +164,19 @@ export const App: React.FC = () => {
       } else if (msg.command === 'resubmitDone') {
         setActionLoading(false);
         showToast(`Resubmitted ${msg.count} message(s)`);
+        if (msg.removedFromDLQ && Array.isArray(msg.sequenceNumbers)) {
+          const removed = new Set<string>(msg.sequenceNumbers);
+          setItems((prev) => prev.filter((m) => !removed.has(m.sequenceNumber)));
+          setSelectedSeqs((prev) => { const next = new Set(prev); removed.forEach(s => next.delete(s)); return next; });
+          setSelected((prev) => prev && removed.has(prev.sequenceNumber) ? null : prev);
+        }
+      } else if (msg.command === 'bulkDeleteDone') {
+        setActionLoading(false);
+        const removed = new Set<string>(msg.sequenceNumbers);
+        setItems((prev) => prev.filter((m) => !removed.has(m.sequenceNumber)));
+        setSelectedSeqs((prev) => { const next = new Set(prev); removed.forEach(s => next.delete(s)); return next; });
+        setSelected((prev) => prev && removed.has(prev.sequenceNumber) ? null : prev);
+        showToast(`Deleted ${msg.sequenceNumbers.length} message(s)`);
       } else if (msg.command === 'moveDone') {
         setActionLoading(false);
         showToast(`Moved ${msg.count} message(s)`);
@@ -384,9 +400,8 @@ export const App: React.FC = () => {
               {hasMessages && (
                 <button className={styles.toolBtn} onClick={() => {
                   if (hasSelection) {
-                    setItems((prev) => prev.filter((m) => !selectedSeqs.has(m.sequenceNumber)));
-                    setSelectedSeqs(new Set());
-                    setSelected(null);
+                    setActionLoading(true);
+                    postMessage({ command: 'bulkDelete', sequenceNumbers: Array.from(selectedSeqs) });
                   } else {
                     setItems([]);
                     setSelected(null);
@@ -403,7 +418,7 @@ export const App: React.FC = () => {
               {hasSelection && (
                 <>
                   {init.isDLQ && (
-                    <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={() => { setActionLoading(true); postMessage({ command: 'resubmit', sequenceNumbers: Array.from(selectedSeqs), count }); }} title="Resubmit selected messages">
+                    <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={() => setResubmitModalOpen(true)} title="Resubmit selected messages">
                       <IconArrowBackUp size={16} stroke={1.8} />Resubmit
                     </button>
                   )}
@@ -655,6 +670,28 @@ export const App: React.FC = () => {
             }
           }}>Dead-letter</Button>
           <Button variant="secondary" onClick={() => setDlqReasonOpen(null)}>Cancel</Button>
+        </div>
+      </Modal>
+
+      {/* Resubmit options modal */}
+      <Modal isOpen={resubmitModalOpen} onClose={() => setResubmitModalOpen(false)} title="Resubmit messages">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input type="checkbox" checked={resubmitRemoveFromDLQ} onChange={(e) => setResubmitRemoveFromDLQ(e.target.checked)} />
+            Remove message from DLQ
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input type="checkbox" checked={resubmitNewMessageId} onChange={(e) => setResubmitNewMessageId(e.target.checked)} />
+            Generate new MessageId
+          </label>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <Button variant="primary" onClick={() => {
+              setResubmitModalOpen(false);
+              setActionLoading(true);
+              postMessage({ command: 'resubmit', sequenceNumbers: Array.from(selectedSeqs), count, removeFromDLQ: resubmitRemoveFromDLQ, newMessageId: resubmitNewMessageId });
+            }}>Submit</Button>
+            <Button variant="secondary" onClick={() => setResubmitModalOpen(false)}>Close</Button>
+          </div>
         </div>
       </Modal>
     </div>
