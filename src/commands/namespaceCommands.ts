@@ -112,6 +112,17 @@ export function registerNamespaceCommands(
       await store.update({ ...item.meta, displayName: newName });
     }),
 
+    vscode.commands.registerCommand('serviceBusExplorer.copyConnectionString', async (item?: NamespaceItem) => {
+      if (!item || item.meta.authMode !== 'sas') return;
+      const connectionString = await store.getSecret(item.meta.id);
+      if (!connectionString) {
+        void vscode.window.showErrorMessage('Connection string is unavailable.');
+        return;
+      }
+      await vscode.env.clipboard.writeText(connectionString);
+      void vscode.window.showInformationMessage('Connection string copied.');
+    }),
+
     vscode.commands.registerCommand('serviceBusExplorer.testConnection', async (item?: NamespaceItem) => {
       if (!item) return;
       await withProgress(`Testing connection: ${item.meta.displayName}`, async () => {

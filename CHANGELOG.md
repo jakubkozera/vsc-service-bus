@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2026-08-24
+
+### Added
+
+- **Copy Connection String** option in the Service Bus namespace context menu for connection string based connections.
+
 ## [0.2.0] - 2026-06-16
 
 ### Added

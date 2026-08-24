@@ -21,7 +21,7 @@ function themedIcon(baseName: string): { light: vscode.Uri; dark: vscode.Uri } {
 export class NamespaceItem extends vscode.TreeItem {
   constructor(public readonly meta: NamespaceMetadata) {
     super(meta.displayName, vscode.TreeItemCollapsibleState.Collapsed);
-    this.contextValue = 'namespace';
+    this.contextValue = meta.authMode === 'sas' ? 'namespace.sas' : 'namespace';
     this.id = `ns:${meta.id}`;
     this.tooltip = new vscode.MarkdownString(
       `**${meta.displayName}**\n\n` +

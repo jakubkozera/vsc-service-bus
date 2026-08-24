@@ -2,7 +2,7 @@
   "name": "azure-service-bus-explorer",
   "displayName": "Azure Service Bus Studio",
   "description": "Manage Azure Service Bus namespaces, queues, topics, subscriptions, rules and messages from VS Code.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "jakubkozera",
   "sponsor": {
     "url": "https://github.com/sponsors/jakubkozera"
@@ -89,6 +89,11 @@
       {
         "command": "serviceBusExplorer.copyName",
         "title": "Copy Name",
+        "category": "Service Bus"
+      },
+      {
+        "command": "serviceBusExplorer.copyConnectionString",
+        "title": "Copy Connection String",
         "category": "Service Bus"
       },
       {
@@ -471,32 +476,32 @@
       "view/item/context": [
         {
           "command": "serviceBusExplorer.testConnection",
-          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /namespace/",
           "group": "1_actions@1"
         },
         {
           "command": "serviceBusExplorer.dashboard.open",
-          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /namespace/",
           "group": "1_actions@2"
         },
         {
           "command": "serviceBusExplorer.namespace.export",
-          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /namespace/",
           "group": "2_io@1"
         },
         {
           "command": "serviceBusExplorer.namespace.import",
-          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /namespace/",
           "group": "2_io@2"
         },
         {
           "command": "serviceBusExplorer.legacyXml.import",
-          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /namespace/",
           "group": "2_io@3"
         },
         {
           "command": "serviceBusExplorer.editNamespace",
-          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /namespace/",
           "group": "9_modify@1"
         },
         {
@@ -693,6 +698,11 @@
           "command": "serviceBusExplorer.copyName",
           "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /queue|topic|subscription|rule|namespace/",
           "group": "z_copy"
+        },
+        {
+          "command": "serviceBusExplorer.copyConnectionString",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace.sas",
+          "group": "z_copy@2"
         },
         {
           "command": "serviceBusExplorer.batch.delete",
