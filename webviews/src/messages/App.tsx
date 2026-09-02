@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Dropdown, Input, Modal, NumberInput, CodeViewer } from '@shared/components';
+import { Button, Checkbox, Dropdown, Input, Modal, NumberInput, CodeViewer, CodeEditor } from '@shared/components';
 import { useVSCodeMessaging } from '@shared/hooks/useVSCodeMessaging';
-import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowBackUp, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull, IconChevronLeft, IconChevronRight, IconFilter } from '@tabler/icons-react';
+import { IconRefresh, IconTrash, IconX, IconCopy, IconMailboxOff, IconDownload, IconClearAll, IconFileExport, IconArrowMoveRight, IconCheck, IconRotate, IconPlayerPause, IconSkull, IconChevronLeft, IconChevronRight, IconFilter, IconPlus } from '@tabler/icons-react';
 import styles from './Messages.module.css';
 
 interface Msg {
@@ -14,11 +14,32 @@ interface Msg {
   deliveryCount?: number;
   state?: string;
   body?: string;
+  correlationId?: string;
   applicationProperties?: Record<string, any>;
   deadLetterReason?: string;
   deadLetterErrorDescription?: string;
   deadLetterSource?: string;
 }
+
+interface PropRow {
+  key: string;
+  value: string;
+}
+
+interface ResubmitModalState {
+  seqs: string[];
+  single: boolean;
+  body: string;
+  contentType: string;
+  subject: string;
+  correlationId: string;
+  props: PropRow[];
+  removeOriginal: boolean;
+  newMessageId: boolean;
+  error: string | null;
+}
+
+const DLQ_PROPERTIES = ['DeadLetterReason', 'DeadLetterErrorDescription', 'DeadLetterSource'];
 
 type Mode = 'peek' | 'peekLock' | 'receiveAndDelete';
 
@@ -116,9 +137,7 @@ export const App: React.FC = () => {
   const [copiedBody, setCopiedBody] = useState(false);
   const [copiedAppProps, setCopiedAppProps] = useState(false);
   const [totalMessageCount, setTotalMessageCount] = useState(0);
-  const [resubmitModalOpen, setResubmitModalOpen] = useState(false);
-  const [resubmitRemoveFromDLQ, setResubmitRemoveFromDLQ] = useState(true);
-  const [resubmitNewMessageId, setResubmitNewMessageId] = useState(false);
+  const [resubmitModal, setResubmitModal] = useState<ResubmitModalState | null>(null);
   const [page, setPage] = useState(1);
   const { postMessage, subscribe } = useVSCodeMessaging<any, any>();
 
@@ -159,12 +178,12 @@ export const App: React.FC = () => {
         setActionLoading(false);
         setItems((prev) => prev.filter((m) => m.sequenceNumber !== msg.sequenceNumber));
         setSelected((prev) => prev?.sequenceNumber === msg.sequenceNumber ? null : prev);
-        const actionLabel = msg.action === 'resend' ? 'Resent' : msg.action === 'delete' ? 'Deleted' : msg.action === 'complete' ? 'Completed' : msg.action;
+        const actionLabel = msg.action === 'delete' ? 'Deleted' : msg.action === 'complete' ? 'Completed' : msg.action;
         showToast(`${actionLabel} message #${msg.sequenceNumber}`);
       } else if (msg.command === 'resubmitDone') {
         setActionLoading(false);
-        showToast(`Resubmitted ${msg.count} message(s)`);
-        if (msg.removedFromDLQ && Array.isArray(msg.sequenceNumbers)) {
+        showToast(`Resubmitted ${msg.count} message(s)${msg.removedOriginals ? ', originals removed' : ''}`);
+        if (msg.removedOriginals && Array.isArray(msg.sequenceNumbers)) {
           const removed = new Set<string>(msg.sequenceNumbers);
           setItems((prev) => prev.filter((m) => !removed.has(m.sequenceNumber)));
           setSelectedSeqs((prev) => { const next = new Set(prev); removed.forEach(s => next.delete(s)); return next; });
@@ -348,6 +367,50 @@ export const App: React.FC = () => {
     }
   };
 
+  const openResubmitModal = (msgs: Msg[]) => {
+    const [first] = msgs;
+    setResubmitModal({
+      seqs: msgs.map(m => m.sequenceNumber),
+      single: msgs.length === 1,
+      body: tryFormatBody(first.body, first.contentType),
+      contentType: first.contentType ?? '',
+      subject: first.subject ?? '',
+      correlationId: first.correlationId ?? '',
+      props: Object.entries(first.applicationProperties ?? {})
+        .filter(([key]) => !DLQ_PROPERTIES.includes(key))
+        .map(([key, value]) => ({ key, value: String(value) })),
+      removeOriginal: false,
+      newMessageId: false,
+      error: null
+    });
+  };
+
+  const submitResubmit = () => {
+    if (!resubmitModal) return;
+    if (resubmitModal.single && /json/i.test(resubmitModal.contentType)) {
+      try { JSON.parse(resubmitModal.body); } catch (e) {
+        setResubmitModal({ ...resubmitModal, error: 'Body is not valid JSON: ' + (e as Error).message });
+        return;
+      }
+    }
+    setActionLoading(true);
+    postMessage({
+      command: 'resubmit',
+      sequenceNumbers: resubmitModal.seqs,
+      removeOriginal: resubmitModal.removeOriginal,
+      newMessageId: resubmitModal.newMessageId,
+      edits: resubmitModal.single ? {
+        body: resubmitModal.body,
+        contentType: resubmitModal.contentType,
+        subject: resubmitModal.subject,
+        correlationId: resubmitModal.correlationId,
+        applicationProperties: resubmitModal.props.filter(p => p.key)
+      } : undefined
+    });
+
+    setResubmitModal(null);
+  };
+
   if (!init) return <div className={styles.emptyState}>Loading…</div>;
 
   const isPeekLock = mode === 'peekLock';
@@ -417,11 +480,9 @@ export const App: React.FC = () => {
               )}
               {hasSelection && (
                 <>
-                  {init.isDLQ && (
-                    <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={() => setResubmitModalOpen(true)} title="Resubmit selected messages">
-                      <IconArrowBackUp size={16} stroke={1.8} />Resubmit
-                    </button>
-                  )}
+                  <button className={`${styles.toolBtn} ${styles.toolBtnPrimary}`} onClick={() => openResubmitModal(items.filter(m => selectedSeqs.has(m.sequenceNumber)))} title="Resubmit selected messages">
+                    <IconRefresh size={16} stroke={1.8} />Resubmit
+                  </button>
                   <button className={styles.toolBtn} onClick={() => postMessage({ command: 'pickMoveTarget' })} title="Move selected to another queue or topic">
                     <IconArrowMoveRight size={16} stroke={1.8} />Move to…
                   </button>
@@ -584,9 +645,9 @@ export const App: React.FC = () => {
               <span className={styles.detailSeq}>#{selected.sequenceNumber}</span>
               {selected.messageId && <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>· {selected.messageId}</span>}
               <div className={styles.detailHeaderActions}>
-                <button className={styles.iconBtn} title="Resend message" onClick={() => { setActionLoading(true); postMessage({ command: 'resend', sequenceNumber: selected.sequenceNumber }); }}><IconRefresh size={15} stroke={1.8} /></button>
-                <button className={`${styles.iconBtn} ${styles.iconBtnDanger}`} title="Delete message" onClick={() => { setActionLoading(true); postMessage({ command: 'delete', sequenceNumber: selected.sequenceNumber }); }}><IconTrash size={15} stroke={1.8} /></button>
-                <button className={styles.iconBtn} onClick={() => setSelected(null)} title="Close"><IconX size={15} stroke={1.8} /></button>
+                <button className={styles.iconBtn} data-tooltip="Resubmit message" onClick={() => openResubmitModal([selected])}><IconRefresh size={15} stroke={1.8} /></button>
+                <button className={`${styles.iconBtn} ${styles.iconBtnDanger}`} data-tooltip="Delete message" onClick={() => { setActionLoading(true); postMessage({ command: 'delete', sequenceNumber: selected.sequenceNumber }); }}><IconTrash size={15} stroke={1.8} /></button>
+                <button className={styles.iconBtn} data-tooltip="Close" onClick={() => setSelected(null)}><IconX size={15} stroke={1.8} /></button>
               </div>
             </div>
             <div className={styles.detailContent}>
@@ -673,32 +734,71 @@ export const App: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Resubmit options modal */}
-      <Modal isOpen={resubmitModalOpen} onClose={() => setResubmitModalOpen(false)} title="Resubmit messages">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="checkbox" checked={resubmitRemoveFromDLQ} onChange={(e) => setResubmitRemoveFromDLQ(e.target.checked)} />
-            Remove message from DLQ
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="checkbox" checked={resubmitNewMessageId} onChange={(e) => setResubmitNewMessageId(e.target.checked)} />
-            Generate new MessageId
-          </label>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <Button variant="primary" onClick={() => {
-              setResubmitModalOpen(false);
-              setActionLoading(true);
-              postMessage({ command: 'resubmit', sequenceNumbers: Array.from(selectedSeqs), count, removeFromDLQ: resubmitRemoveFromDLQ, newMessageId: resubmitNewMessageId });
-            }}>Submit</Button>
-            <Button variant="secondary" onClick={() => setResubmitModalOpen(false)}>Close</Button>
+      <Modal
+        isOpen={!!resubmitModal}
+        onClose={() => setResubmitModal(null)}
+        title={resubmitModal?.single ? 'Resubmit message' : `Resubmit ${resubmitModal?.seqs.length} messages`}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setResubmitModal(null)}>Cancel</Button>
+            <Button variant="primary" onClick={submitResubmit}>Resubmit</Button>
+          </>
+        }
+      >
+        {resubmitModal && (
+          <div className={styles.resubmitForm}>
+            {resubmitModal.single && (
+              <>
+                <CodeEditor
+                  value={resubmitModal.body}
+                  onChange={(body) => setResubmitModal({ ...resubmitModal, body, error: null })}
+                  language={/json/i.test(resubmitModal.contentType) ? 'json' : 'auto'}
+                />
+                <Input label="Content type" value={resubmitModal.contentType} onChange={(e) => setResubmitModal({ ...resubmitModal, contentType: e.target.value })} />
+                <Input label="Subject" value={resubmitModal.subject} onChange={(e) => setResubmitModal({ ...resubmitModal, subject: e.target.value })} />
+                <Input label="Correlation ID" value={resubmitModal.correlationId} onChange={(e) => setResubmitModal({ ...resubmitModal, correlationId: e.target.value })} />
+                <AppPropsEditor rows={resubmitModal.props} onChange={(props) => setResubmitModal({ ...resubmitModal, props })} />
+              </>
+            )}
+            {resubmitModal.error && <div className={styles.resubmitError}>{resubmitModal.error}</div>}
+            <Checkbox
+              checked={resubmitModal.removeOriginal}
+              onChange={(removeOriginal) => setResubmitModal({ ...resubmitModal, removeOriginal })}
+              label={init.isDLQ ? 'Remove the original from the dead-letter queue' : 'Remove the original from the entity'}
+            />
+            <Checkbox
+              checked={resubmitModal.newMessageId}
+              onChange={(newMessageId) => setResubmitModal({ ...resubmitModal, newMessageId })}
+              label="Generate new MessageId"
+            />
           </div>
-        </div>
+        )}
       </Modal>
     </div>
   );
 };
 
 // ── Sub-components ──
+
+const AppPropsEditor: React.FC<{ rows: PropRow[]; onChange: (rows: PropRow[]) => void }> = ({ rows, onChange }) => (
+  <div className={styles.resubmitProps}>
+    <span className={styles.resubmitPropsTitle}>Application properties</span>
+    {rows.map((row, i) => (
+      <div key={i} className={styles.resubmitPropRow}>
+        <input className={styles.resubmitPropInput} value={row.key} placeholder="key"
+          onChange={(e) => onChange(rows.map((r, j) => j === i ? { ...r, key: e.target.value } : r))} />
+        <input className={styles.resubmitPropInput} value={row.value} placeholder="value"
+          onChange={(e) => onChange(rows.map((r, j) => j === i ? { ...r, value: e.target.value } : r))} />
+        <button className={styles.iconBtn} title="Remove property" onClick={() => onChange(rows.filter((_, j) => j !== i))}>
+          <IconX size={14} stroke={1.8} />
+        </button>
+      </div>
+    ))}
+    <button className={styles.toolBtn} onClick={() => onChange([...rows, { key: '', value: '' }])}>
+      <IconPlus size={14} stroke={1.8} />Add property
+    </button>
+  </div>
+);
 
 const MetaRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className={styles.metaRow}>

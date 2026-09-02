@@ -348,8 +348,10 @@
 }
 
 /* Custom tooltip for action buttons */
-.actionBtn::after {
+.actionBtn::after,
+.iconBtn[data-tooltip]::after {
   content: attr(data-tooltip);
+  line-height: normal;
   position: absolute;
   bottom: calc(100% + 6px);
   left: 50%;
@@ -368,7 +370,8 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.actionBtn:hover::after {
+.actionBtn:hover::after,
+.iconBtn[data-tooltip]:hover::after {
   opacity: 1;
 }
 
@@ -379,7 +382,6 @@
   background: var(--vscode-sideBar-background);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   position: relative;
 }
 
@@ -428,6 +430,7 @@
 }
 
 .iconBtn {
+  position: relative;
   background: none;
   border: 1px solid transparent;
   color: var(--vscode-descriptionForeground);
@@ -675,4 +678,46 @@
 .checkbox {
   cursor: pointer;
   accent-color: var(--vscode-button-background);
+}
+
+/* Resubmit dialog */
+.resubmitForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+
+.resubmitError {
+  color: var(--vscode-errorForeground);
+  font-size: 12px;
+}
+
+.resubmitProps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resubmitPropsTitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+}
+
+.resubmitPropRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resubmitPropInput {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: 12px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 2px;
 }
