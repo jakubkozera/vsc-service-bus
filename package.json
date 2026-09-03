@@ -506,7 +506,7 @@
         },
         {
           "command": "serviceBusExplorer.removeNamespace",
-          "when": "view == serviceBusExplorer.namespacesView && viewItem == namespace",
+          "when": "view == serviceBusExplorer.namespacesView && viewItem =~ /namespace/",
           "group": "9_modify@2"
         },
         {
