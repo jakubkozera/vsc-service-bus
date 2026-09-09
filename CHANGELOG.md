@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2] - 2026-09-09
+
+### Added
+
+- **Editable resubmission modal** for messages — edit the body, content type, subject, correlation ID and application properties before resubmitting.
+- Resubmit options to **remove the original message** and **generate a new message ID**, with support for resubmitting selected messages.
+- Tooltips for dead-letter message detail actions.
+
+### Fixed
+
+- **Remove Namespace** is now available from the namespace context menu for all namespace tree items.
+
 ## [0.2.1] - 2026-08-24
 
 ### Added
