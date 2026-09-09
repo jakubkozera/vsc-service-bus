@@ -5,6 +5,8 @@ import { App } from './App';
 // Mock Tabler Icons
 vi.mock('@tabler/icons-react', () => ({
   IconRefresh: (props: any) => <svg data-testid="icon-refresh" {...props} />,
+  IconSend: (props: any) => <svg data-testid="icon-send" {...props} />,
+  IconPlus: (props: any) => <svg data-testid="icon-plus" {...props} />,
   IconTrash: (props: any) => <svg data-testid="icon-trash" {...props} />,
   IconX: (props: any) => <svg data-testid="icon-x" {...props} />,
   IconCopy: (props: any) => <svg data-testid="icon-copy" {...props} />,
@@ -118,41 +120,56 @@ describe('Messages App', () => {
       fireEvent.click(screen.getByText('42'));
     }
 
+    const detailButton = (icon: string) => screen.getByTestId(icon).closest('button')!;
+
     it('shows detail panel when message is selected', () => {
       renderWithSelectedMessage();
       expect(screen.getByText('#42')).toBeInTheDocument();
-      expect(screen.getByTitle('Close')).toBeInTheDocument();
+      expect(detailButton('icon-x')).toHaveAttribute('data-tooltip', 'Close');
     });
 
-    it('shows Resend button in detail header', () => {
+    it('shows Resubmit button in detail header', () => {
       renderWithSelectedMessage();
-      const resendBtn = screen.getByTitle('Resend message');
-      expect(resendBtn).toBeInTheDocument();
+      expect(detailButton('icon-refresh')).toHaveAttribute('data-tooltip', 'Resubmit');
     });
 
     it('shows Delete button in detail header', () => {
       renderWithSelectedMessage();
-      const deleteBtn = screen.getByTitle('Delete message');
-      expect(deleteBtn).toBeInTheDocument();
+      expect(detailButton('icon-trash')).toHaveAttribute('data-tooltip', 'Delete message');
     });
 
-    it('posts resend command when Resend is clicked', () => {
+    it('posts resubmit command with edits when the dialog is confirmed', () => {
       renderWithSelectedMessage();
+      fireEvent.click(detailButton('icon-refresh'));
       mockPostMessage.mockClear();
-      fireEvent.click(screen.getByTitle('Resend message'));
-      expect(mockPostMessage).toHaveBeenCalledWith({ command: 'resend', sequenceNumber: '42' });
+      fireEvent.click(screen.getByRole('button', { name: 'Resubmit' }));
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({
+        command: 'resubmit',
+        sequenceNumbers: ['42'],
+        removeOriginal: false,
+        newMessageId: false
+      }));
+    });
+
+    it('keeps the original by default and can remove it on request', () => {
+      renderWithSelectedMessage();
+      fireEvent.click(detailButton('icon-refresh'));
+      fireEvent.click(screen.getByLabelText('Remove the original from the entity'));
+      mockPostMessage.mockClear();
+      fireEvent.click(screen.getByRole('button', { name: 'Resubmit' }));
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ removeOriginal: true }));
     });
 
     it('posts delete command when Delete is clicked', () => {
       renderWithSelectedMessage();
       mockPostMessage.mockClear();
-      fireEvent.click(screen.getByTitle('Delete message'));
+      fireEvent.click(detailButton('icon-trash'));
       expect(mockPostMessage).toHaveBeenCalledWith({ command: 'delete', sequenceNumber: '42' });
     });
 
     it('closes detail panel when Close is clicked', () => {
       renderWithSelectedMessage();
-      fireEvent.click(screen.getByTitle('Close'));
+      fireEvent.click(detailButton('icon-x'));
       expect(screen.queryByText('#42')).not.toBeInTheDocument();
     });
 

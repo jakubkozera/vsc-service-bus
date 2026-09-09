@@ -5,10 +5,36 @@ import { AdminService } from '../services/adminService';
 import { NamespacesTreeProvider } from '../providers/namespacesTreeProvider';
 import { WebviewHost } from '../webviews/webviewHost';
 import { QueueItem, SubscriptionItem, TopicItem, DeadLetterItem } from '../providers/treeItems';
-import { previewBody, safeStringify } from '../utils/messageBody';
+import { parseEditedBody, previewBody, safeStringify } from '../utils/messageBody';
 import { showError } from '../utils/errors';
 import { Logger } from '../logging/logger';
-import { ServiceBusReceivedMessage, ServiceBusReceiver } from '@azure/service-bus';
+import { ServiceBusMessage, ServiceBusReceivedMessage, ServiceBusReceiver } from '@azure/service-bus';
+
+interface MessageEdits {
+  body: string;
+  contentType: string;
+  subject: string;
+  correlationId: string;
+  applicationProperties: { key: string; value: string }[];
+}
+
+function applyEdits(out: ServiceBusMessage, edits: MessageEdits): void {
+  out.contentType = edits.contentType || undefined;
+  out.subject = edits.subject || undefined;
+  out.correlationId = edits.correlationId || undefined;
+  out.body = parseEditedBody(edits.body, out.contentType);
+  out.applicationProperties = Object.fromEntries(
+    edits.applicationProperties.map(({ key, value }) => [key, coerceProperty(value)])
+  );
+}
+
+function coerceProperty(value: string): any {
+  try { 
+    return JSON.parse(value); 
+  } catch { 
+    return value; 
+  }  
+}
 
 function serializeMessage(m: ServiceBusReceivedMessage): any {
   return {
@@ -138,26 +164,38 @@ export function registerMessageCommands(
               await vscode.workspace.fs.writeFile(uri, Buffer.from(safeStringify(msg.items)));
               void vscode.window.showInformationMessage('Exported');
             }
-          } else if (msg.command === 'resend') {
-            Logger.info(`[Messages] Resend seq ${msg.sequenceNumber} from ${src.label}`);
-            await cleanup();
-            const recv = await messages.openPeekLockReceiver(src.nsId, src);
-            try {
-              const { found, abandoned } = await receiveBatchUntilFound(recv, new Set([msg.sequenceNumber]));
-              const target = found[0];
-              if (target) {
-                const dest = src.queue ? { queue: src.queue } : { topic: src.topic! };
-                await send.send(src.nsId, dest, [messages.toServiceBusMessage(target)]);
-                await recv.completeMessage(target);
+          } else if (msg.command === 'resubmit') {
+            const seqs = new Set<string>(msg.sequenceNumbers as string[]);
+            const dest = src.queue ? { queue: src.queue } : { topic: src.topic! };
+            const prepare = (m: ServiceBusReceivedMessage) => {
+              const out = messages.toServiceBusMessage(m);
+              if (msg.edits) { applyEdits(out, msg.edits); }
+              if (msg.newMessageId) { out.messageId = require('crypto').randomUUID(); }
+              return out;
+            };
+            Logger.info(`[Messages] Resubmit ${seqs.size} message(s) to ${src.label}, removeOriginal=${!!msg.removeOriginal}`);
+            let resent: string[];
+            if (msg.removeOriginal) {
+              await cleanup();
+              const recv = await messages.openPeekLockReceiver(src.nsId, src);
+              try {
+                const { found, abandoned } = await receiveBatchUntilFound(recv, seqs);
+                await send.send(src.nsId, dest, found.map(prepare));
+                for (const m of found) await recv.completeMessage(m);
                 for (const m of abandoned) await recv.abandonMessage(m);
-                host.post({ command: 'actionDone', sequenceNumber: msg.sequenceNumber, action: 'resend' });
-                Logger.info(`[Messages] Resend done for seq ${msg.sequenceNumber}`);
-                tree.invalidateNamespace(src.nsId);
-              } else {
-                for (const m of abandoned) await recv.abandonMessage(m);
-                host.post({ command: 'error', error: `Message ${msg.sequenceNumber} not found` });
+                resent = found.map(m => String(m.sequenceNumber));
+              } finally { await recv.close(); }
+            } else {
+              const found: ServiceBusReceivedMessage[] = [];
+              for (const seq of seqs) {
+                const [m] = await messages.peek(src.nsId, src, 1, BigInt(seq));
+                if (String(m?.sequenceNumber) === seq) { found.push(m); }
               }
-            } finally { await recv.close(); }
+              await send.send(src.nsId, dest, found.map(prepare));
+              resent = found.map(m => String(m.sequenceNumber));
+            }
+            host.post({ command: 'resubmitDone', count: resent.length, removedOriginals: !!msg.removeOriginal, sequenceNumbers: resent });
+            tree.invalidateNamespace(src.nsId);
           } else if (msg.command === 'delete') {
             Logger.info(`[Messages] Delete seq ${msg.sequenceNumber} from ${src.label}`);
             await cleanup();
@@ -176,36 +214,6 @@ export function registerMessageCommands(
                 host.post({ command: 'error', error: `Message ${msg.sequenceNumber} not found` });
               }
             } finally { await recv.close(); }
-          } else if (msg.command === 'resubmit') {
-            // DLQ: receive locked → send to source → optionally complete (remove from DLQ) or abandon
-            // NOTE: double-fetch is necessary — peek gives read-only snapshots without locks;
-            // to complete/abandon we must receiveMessages (peekLock) to obtain locked references.
-            const removeFromDLQ: boolean = msg.removeFromDLQ !== false; // default true
-            const newMessageId: boolean = !!msg.newMessageId;
-            const resubmitSeqs = new Set<string>(msg.sequenceNumbers as string[] | undefined);
-            await cleanup();
-            const recv = await messages.openPeekLockReceiver(src.nsId, src);
-            try {
-              const { found: toSubmit, abandoned: toAbandon } = await receiveBatchUntilFound(recv, resubmitSeqs);
-
-              const target = src.queue ? { queue: src.queue } : { topic: src.topic! };
-              const outMessages = toSubmit.map(m => {
-                const out = messages.toServiceBusMessage(m);
-                if (newMessageId) {
-                  out.messageId = require('crypto').randomUUID();
-                }
-                return out;
-              });
-              await send.send(src.nsId, target, outMessages);
-              if (removeFromDLQ) {
-                for (const m of toSubmit) await recv.completeMessage(m);
-              } else {
-                for (const m of toSubmit) await recv.abandonMessage(m);
-              }
-              for (const m of toAbandon) await recv.abandonMessage(m);
-              host.post({ command: 'resubmitDone', count: toSubmit.length, removedFromDLQ: removeFromDLQ, sequenceNumbers: toSubmit.map(m => String(m.sequenceNumber)) });
-            } finally { await recv.close(); }
-            tree.invalidateNamespace(src.nsId);
           } else if (msg.command === 'moveTo') {
             const targetName: string = msg.targetName;
             const targetKind: 'queue' | 'topic' = msg.targetKind;

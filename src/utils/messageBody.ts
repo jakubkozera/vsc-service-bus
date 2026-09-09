@@ -18,6 +18,13 @@ export function safeStringify(value: unknown, indent = 2): string {
   }, indent);
 }
 
+/** 
+ * Turns edited text back into a body. 
+ */
+export function parseEditedBody(text: string, contentType = ''): unknown {
+  return /json/i.test(contentType) ? JSON.parse(text) : text;
+}
+
 export function previewBody(body: unknown): string {
   if (body == null) return '';
   if (typeof body === 'string') return body;
