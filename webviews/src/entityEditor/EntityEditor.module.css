@@ -15,6 +15,49 @@
   flex: 1;
 }
 
+.loadingSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skeletonStats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.skeletonStat,
+.skeletonPanel {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-foreground) 5%, transparent);
+  animation: skeletonPulse 1.2s ease-in-out infinite alternate;
+}
+
+.skeletonStat {
+  height: 88px;
+}
+
+.skeletonPanels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.skeletonPanel {
+  height: 190px;
+}
+
+.skeletonPanelWide {
+  grid-column: 1 / -1;
+  height: 150px;
+}
+
+@keyframes skeletonPulse {
+  to { opacity: 0.55; }
+}
+
 /* Animations */
 .content > * {
   animation: fadeIn 0.25s ease backwards;
@@ -122,6 +165,18 @@
   background: var(--vscode-toolbar-hoverBackground);
   color: var(--vscode-foreground);
   border-color: var(--vscode-input-border);
+}
+
+.headerIconBtn:disabled {
+  cursor: wait;
+}
+
+.refreshingIcon {
+  animation: refreshSpin 0.7s linear infinite;
+}
+
+@keyframes refreshSpin {
+  to { transform: rotate(360deg); }
 }
 
 .headerIconBtnDanger:hover {

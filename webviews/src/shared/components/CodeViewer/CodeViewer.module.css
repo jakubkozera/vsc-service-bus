@@ -3,7 +3,7 @@
   overflow: visible;
   background: var(--vscode-editor-background, #1e1e1e);
   border-radius: 4px;
-  font-family: var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
+  font-family: 'JetBrains Mono', var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
   font-size: 12px;
   line-height: 1.5;
   tab-size: 2;

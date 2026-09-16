@@ -166,6 +166,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  font-family: 'JetBrains Mono', var(--vscode-editor-font-family, monospace);
 }
 
 .tableHead {

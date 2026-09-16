@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.3] - 2026-09-16
+
+### Changed
+
+- Code result viewers and editors, plus the messages results table, now use **JetBrains Mono** by default when installed.
+
+### Fixed
+
+- The entity editor **Refresh** button now spins and remains disabled while the latest entity data is loading.
+
 ## [0.2.2] - 2026-09-09
 
 ### Added
@@ -31,7 +41,7 @@
 ### Fixed
 
 - `Remove selected` button in the messages view now actually deletes messages from the Service Bus queue (previously it only removed them from the local UI list).
-- Resubmitting messages with *Remove from DLQ* enabled now immediately removes them from the messages table in the UI.
+- Resubmitting messages with _Remove from DLQ_ enabled now immediately removes them from the messages table in the UI.
 - Peek count above 250 now correctly fetches all requested messages by batching `peekMessages` calls (Azure SDK limit is 250 per call).
 - `resend`, `delete`, and `moveTo` operations now correctly locate messages by sequence number regardless of their position in the queue (previously only searched in the first 50 messages).
 

@@ -1,6 +1,6 @@
-import React from 'react';
-import { LoadingOverlay } from '@shared/components';
-import { useEntityEditor } from './hooks';
+import React from "react";
+import { LoadingOverlay } from "@shared/components";
+import { useEntityEditor } from "./hooks";
 import {
   EntityHeader,
   StatsRow,
@@ -11,18 +11,32 @@ import {
   JsonViewer,
   SaveBar,
   CreateForm,
-} from './components';
-import styles from './EntityEditor.module.css';
+} from "./components";
+import styles from "./EntityEditor.module.css";
 
 export const App: React.FC = () => {
   const {
-    init, name, props, dirty, saveState, error, purging,
-    setName, setP, onSave, onDiscard, setPurging, postMessage,
+    init,
+    name,
+    props,
+    dirty,
+    saveState,
+    error,
+    purging,
+    refreshing,
+    loading,
+    setName,
+    setP,
+    onSave,
+    onDiscard,
+    setPurging,
+    onRefresh,
+    postMessage,
   } = useEntityEditor();
 
   if (!init) return <div className={styles.centered}>Loading...</div>;
 
-  if (init.mode === 'create') {
+  if (init.mode === "create") {
     return (
       <CreateForm
         init={init}
@@ -31,7 +45,7 @@ export const App: React.FC = () => {
         props={props}
         setP={setP}
         onSave={onSave}
-        onCancel={() => postMessage({ command: 'cancel' })}
+        onCancel={() => postMessage({ command: "cancel" })}
         error={error}
       />
     );
@@ -39,19 +53,89 @@ export const App: React.FC = () => {
 
   return (
     <div className={styles.editor}>
-      {purging && <LoadingOverlay isLoading={true} text="Purging messages..." />}
+      {purging && (
+        <LoadingOverlay isLoading={true} text="Purging messages..." />
+      )}
       <div className={styles.content}>
-        <EntityHeader init={init} props={props} postMessage={postMessage} />
-        {init.runtime && <StatsRow runtime={init.runtime} kind={init.kind} postMessage={postMessage} setPurging={setPurging} />}
-        {init.kind === 'queue' && <QueueEditor props={props} setP={setP} readonly={init.mode === 'view'} availableTargets={init.availableTargets} />}
-        {init.kind === 'topic' && <TopicEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
-        {init.kind === 'subscription' && <SubscriptionEditor props={props} setP={setP} readonly={init.mode === 'view'} availableTargets={init.availableTargets} />}
-        {init.kind === 'rule' && <RuleEditor props={props} setP={setP} readonly={init.mode === 'view'} />}
-        {init.runtime && <JsonViewer data={init.runtime} title="Runtime - raw response" />}
+        <EntityHeader
+          init={init}
+          props={props}
+          refreshing={refreshing || loading}
+          onRefresh={onRefresh}
+          postMessage={postMessage}
+        />
+        {loading ? (
+          <EntityLoadingSkeleton />
+        ) : (
+          <>
+            {init.runtime && (
+              <StatsRow
+                runtime={init.runtime}
+                kind={init.kind}
+                postMessage={postMessage}
+                setPurging={setPurging}
+              />
+            )}
+            {init.kind === "queue" && (
+              <QueueEditor
+                props={props}
+                setP={setP}
+                readonly={init.mode === "view"}
+                availableTargets={init.availableTargets}
+              />
+            )}
+            {init.kind === "topic" && (
+              <TopicEditor
+                props={props}
+                setP={setP}
+                readonly={init.mode === "view"}
+              />
+            )}
+            {init.kind === "subscription" && (
+              <SubscriptionEditor
+                props={props}
+                setP={setP}
+                readonly={init.mode === "view"}
+                availableTargets={init.availableTargets}
+              />
+            )}
+            {init.kind === "rule" && (
+              <RuleEditor
+                props={props}
+                setP={setP}
+                readonly={init.mode === "view"}
+              />
+            )}
+            {init.runtime && (
+              <JsonViewer data={init.runtime} title="Runtime - raw response" />
+            )}
+          </>
+        )}
       </div>
-      {init.mode === 'edit' && (
-        <SaveBar dirty={dirty} saveState={saveState} error={error} onSave={onSave} onDiscard={onDiscard} />
+      {!loading && init.mode === "edit" && (
+        <SaveBar
+          dirty={dirty}
+          saveState={saveState}
+          error={error}
+          onSave={onSave}
+          onDiscard={onDiscard}
+        />
       )}
     </div>
   );
 };
+
+const EntityLoadingSkeleton: React.FC = () => (
+  <div className={styles.loadingSkeleton} aria-label="Loading queue details">
+    <div className={styles.skeletonStats}>
+      {Array.from({ length: 5 }, (_, index) => (
+        <div className={styles.skeletonStat} key={index} />
+      ))}
+    </div>
+    <div className={styles.skeletonPanels}>
+      <div className={styles.skeletonPanel} />
+      <div className={styles.skeletonPanel} />
+      <div className={`${styles.skeletonPanel} ${styles.skeletonPanelWide}`} />
+    </div>
+  </div>
+);

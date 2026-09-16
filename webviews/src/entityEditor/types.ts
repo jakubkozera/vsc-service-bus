@@ -1,13 +1,14 @@
 export interface InitData {
-  mode: 'create' | 'edit' | 'view';
-  kind: 'queue' | 'topic' | 'subscription' | 'rule';
+  mode: "create" | "edit" | "view";
+  kind: "queue" | "topic" | "subscription" | "rule";
   name?: string;
   namespace?: string;
   topicName?: string;
   subscriptionName?: string;
   properties?: any;
   runtime?: any;
-  availableTargets?: { name: string; kind: 'queue' | 'topic' }[];
+  availableTargets?: { name: string; kind: "queue" | "topic" }[];
+  loading?: boolean;
 }
 
 export interface FeatureToggle {
@@ -20,8 +21,8 @@ export interface FeatureToggle {
 }
 
 export const STATUS_OPTIONS = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Disabled', label: 'Disabled' },
-  { value: 'SendDisabled', label: 'SendDisabled' },
-  { value: 'ReceiveDisabled', label: 'ReceiveDisabled' },
+  { value: "Active", label: "Active" },
+  { value: "Disabled", label: "Disabled" },
+  { value: "SendDisabled", label: "SendDisabled" },
+  { value: "ReceiveDisabled", label: "ReceiveDisabled" },
 ];
